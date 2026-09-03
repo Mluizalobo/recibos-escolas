@@ -161,8 +161,11 @@ export class ApiError extends Error {
   }
 }
 
-/** Linha bruta de planilha, antes da normalização/agrupamento. */
+/** Linha bruta de planilha (formato tabular), antes da normalização/agrupamento. */
 export type PlanilhaLinha = Record<string, JsonValue>;
+
+/** Grade bruta lida diretamente da planilha (linhas × colunas, por posição, sem assumir cabeçalho). */
+export type PlanilhaGrade = JsonValue[][];
 
 /** Resultado de normalizeSpreadsheetData(): recibos já organizados por escola/entrega, com status individual. */
 export interface ResultadoImportacao {

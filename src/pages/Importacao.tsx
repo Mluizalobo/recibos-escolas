@@ -7,8 +7,8 @@ import { normalizeSpreadsheetData } from '../services/normalizeService';
 import { registrarEntregasImportadas } from '../services/api';
 import { definirRecibosImportados } from '../services/recibosStore';
 import { encontrarImportacaoDuplicada, registrarImportacao } from '../services/historyService';
-import DataTable from '../components/DataTable';
-import type { ImportacaoHistorico, JsonObject, PlanilhaLinha, ResultadoImportacao } from '../types';
+import { formatPrimitiveValue } from '../utils/formatters';
+import type { ImportacaoHistorico, JsonValue, PlanilhaGrade, ResultadoImportacao } from '../types';
 
 type StatusProcessamento = 'selecionado' | 'processando' | 'concluido' | 'erro';
 
@@ -33,10 +33,13 @@ function formatarTamanho(bytes: number): string {
 }
 
 interface DuplicataPendente {
-  linhas: PlanilhaLinha[];
+  grade: PlanilhaGrade;
   hash: string;
   duplicata: ImportacaoHistorico;
 }
+
+const MAX_LINHAS_PREVIEW = 100;
+const MAX_COLUNAS_PREVIEW = 25;
 
 /**
  * Tela que substitui o processo manual "planilha semanal → copiar para o
@@ -54,14 +57,14 @@ export default function Importacao() {
   const [erroProcessamento, setErroProcessamento] = useState<string | null>(null);
   const [resultado, setResultado] = useState<ResultadoImportacao | null>(null);
   const [duplicataPendente, setDuplicataPendente] = useState<DuplicataPendente | null>(null);
-  const [linhasBrutas, setLinhasBrutas] = useState<PlanilhaLinha[] | null>(null);
+  const [gradeBruta, setGradeBruta] = useState<PlanilhaGrade | null>(null);
   const [mostrarBruta, setMostrarBruta] = useState(false);
 
   function selecionarArquivo(file: File | undefined) {
     setResultado(null);
     setErroProcessamento(null);
     setDuplicataPendente(null);
-    setLinhasBrutas(null);
+    setGradeBruta(null);
     setMostrarBruta(false);
 
     if (!file) return;
@@ -87,26 +90,26 @@ export default function Importacao() {
     selecionarArquivo(event.dataTransfer.files?.[0]);
   }
 
-  async function processar(forcado?: { linhas: PlanilhaLinha[]; hash: string }) {
+  async function processar(forcado?: { grade: PlanilhaGrade; hash: string }) {
     if (!arquivo) return;
     setStatusProcessamento('processando');
     setErroProcessamento(null);
 
     try {
-      const linhas = forcado?.linhas ?? (await lerArquivoExcel(arquivo));
-      const hash = forcado?.hash ?? calcularHashPlanilha(linhas);
-      setLinhasBrutas(linhas);
+      const grade = forcado?.grade ?? (await lerArquivoExcel(arquivo));
+      const hash = forcado?.hash ?? calcularHashPlanilha(grade);
+      setGradeBruta(grade);
 
       if (!forcado) {
         const duplicata = encontrarImportacaoDuplicada(hash);
         if (duplicata) {
-          setDuplicataPendente({ linhas, hash, duplicata });
+          setDuplicataPendente({ grade, hash, duplicata });
           setStatusProcessamento('selecionado');
           return;
         }
       }
 
-      const resultadoNormalizado = normalizeSpreadsheetData(linhas);
+      const resultadoNormalizado = normalizeSpreadsheetData(grade);
 
       definirRecibosImportados(resultadoNormalizado.recibos);
       registrarEntregasImportadas(resultadoNormalizado.recibos.map((r) => r.entrega));
@@ -214,7 +217,7 @@ export default function Importacao() {
               </button>
               <button
                 type="button"
-                onClick={() => processar({ linhas: duplicataPendente.linhas, hash: duplicataPendente.hash })}
+                onClick={() => processar({ grade: duplicataPendente.grade, hash: duplicataPendente.hash })}
                 className="rounded-md bg-amber-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-amber-700"
               >
                 Continuar mesmo assim
@@ -297,7 +300,7 @@ export default function Importacao() {
         </div>
       )}
 
-      {linhasBrutas && linhasBrutas.length > 0 && (
+      {gradeBruta && gradeBruta.length > 0 && (
         <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
           <button
             type="button"
@@ -305,7 +308,7 @@ export default function Importacao() {
             className="flex w-full items-center justify-between text-left"
           >
             <span className="text-sm font-semibold text-gray-800">
-              Planilha original ({linhasBrutas.length} linha{linhasBrutas.length === 1 ? '' : 's'})
+              Planilha original ({gradeBruta.length} linha{gradeBruta.length === 1 ? '' : 's'})
             </span>
             {mostrarBruta ? (
               <EyeOff className="h-4 w-4 text-gray-400" aria-hidden="true" />
@@ -314,17 +317,49 @@ export default function Importacao() {
             )}
           </button>
 
-          {mostrarBruta && (
-            <div className="mt-4">
-              <DataTable rows={linhasBrutas.slice(0, 100) as JsonObject[]} />
-              {linhasBrutas.length > 100 && (
-                <p className="mt-2 text-xs text-gray-400">
-                  Mostrando as primeiras 100 de {linhasBrutas.length} linhas.
-                </p>
-              )}
-            </div>
-          )}
+          {mostrarBruta && <GradePreview grade={gradeBruta} />}
         </div>
+      )}
+    </div>
+  );
+}
+
+function formatarCelula(valor: JsonValue | undefined): string {
+  if (valor === undefined || valor === null || valor === '') return '';
+  if (typeof valor === 'string' || typeof valor === 'number' || typeof valor === 'boolean') {
+    return formatPrimitiveValue(valor);
+  }
+  return JSON.stringify(valor);
+}
+
+/** Mostra a grade exatamente como foi lida (por posição, sem assumir cabeçalho) — útil tanto para tabela simples quanto para planilha em formato matriz. */
+function GradePreview({ grade }: { grade: PlanilhaGrade }) {
+  const linhas = grade.slice(0, MAX_LINHAS_PREVIEW);
+  const maxColunasReais = grade.reduce((max, linha) => Math.max(max, linha.length), 0);
+  const totalColunas = Math.min(maxColunasReais, MAX_COLUNAS_PREVIEW);
+
+  return (
+    <div className="mt-4">
+      <div className="overflow-x-auto rounded-lg border border-gray-200">
+        <table className="min-w-full divide-y divide-gray-200 text-xs">
+          <tbody className="divide-y divide-gray-100 bg-white">
+            {linhas.map((linha, indiceLinha) => (
+              <tr key={indiceLinha} className={indiceLinha === 0 ? 'bg-gray-50 font-semibold' : undefined}>
+                {Array.from({ length: totalColunas }).map((_, indiceColuna) => (
+                  <td key={indiceColuna} className="whitespace-nowrap px-2 py-1 text-gray-700">
+                    {formatarCelula(linha[indiceColuna])}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      {(grade.length > MAX_LINHAS_PREVIEW || maxColunasReais > MAX_COLUNAS_PREVIEW) && (
+        <p className="mt-2 text-xs text-gray-400">
+          Mostrando {Math.min(grade.length, MAX_LINHAS_PREVIEW)} de {grade.length} linhas e {totalColunas} de{' '}
+          {maxColunasReais} colunas.
+        </p>
       )}
     </div>
   );

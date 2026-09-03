@@ -1,9 +1,15 @@
 import * as XLSX from 'xlsx';
-import type { PlanilhaLinha } from '../types';
+import type { PlanilhaGrade } from '../types';
 import { gerarHash } from '../utils/hash';
 
-/** Lê o arquivo e devolve as linhas em formato JSON, com as chaves originais da planilha. */
-export async function lerArquivoExcel(file: File): Promise<PlanilhaLinha[]> {
+/**
+ * Lê o arquivo e devolve a grade bruta (linhas × colunas, por posição).
+ * Não assume que a primeira linha é cabeçalho — planilhas reais variam
+ * muito (algumas são tabela simples, outras são uma matriz com escolas nas
+ * linhas e produtos nas colunas, com título e cabeçalhos em linhas
+ * diferentes). Quem decide como interpretar a grade é normalizeService.ts.
+ */
+export async function lerArquivoExcel(file: File): Promise<PlanilhaGrade> {
   let workbook: XLSX.WorkBook;
   try {
     const buffer = await file.arrayBuffer();
@@ -18,10 +24,10 @@ export async function lerArquivoExcel(file: File): Promise<PlanilhaLinha[]> {
   }
 
   const planilha = workbook.Sheets[nomeAba];
-  return XLSX.utils.sheet_to_json<PlanilhaLinha>(planilha, { defval: null, raw: true });
+  return XLSX.utils.sheet_to_json<PlanilhaGrade[number]>(planilha, { header: 1, defval: null, raw: true });
 }
 
 /** Hash do conteúdo lido, usado por historyService para detectar reimportação da mesma planilha. */
-export function calcularHashPlanilha(linhas: PlanilhaLinha[]): string {
-  return gerarHash(JSON.stringify(linhas));
+export function calcularHashPlanilha(grade: PlanilhaGrade): string {
+  return gerarHash(JSON.stringify(grade));
 }

@@ -2,6 +2,8 @@ import type {
   Entrega,
   Escola,
   ItemEntrega,
+  JsonValue,
+  PlanilhaGrade,
   PlanilhaLinha,
   ProblemaRecibo,
   ReciboPreparado,
@@ -9,6 +11,26 @@ import type {
   StatusPreparoRecibo,
 } from '../types';
 import { gerarHash } from '../utils/hash';
+
+function comoTexto(valor: unknown): string | undefined {
+  if (valor === null || valor === undefined || valor === '') return undefined;
+  return String(valor).trim();
+}
+
+function comoNumero(valor: unknown): number | undefined {
+  if (valor === null || valor === undefined || valor === '') return undefined;
+  const numero = typeof valor === 'number' ? valor : Number(String(valor).replace(',', '.'));
+  return Number.isNaN(numero) ? undefined : numero;
+}
+
+function limparEspacos(valor: string): string {
+  return valor.replace(/\s+/g, ' ').trim();
+}
+
+// =====================================================================
+// Formato "tabela": uma linha por item, com colunas como Escola/Produto/
+// Quantidade — o formato mais simples possível de planilha.
+// =====================================================================
 
 /**
  * Mapa de cabeçalhos conhecidos -> campo canônico. As chaves já estão
@@ -76,6 +98,20 @@ function normalizarCabecalho(header: string): string {
     .toLowerCase();
 }
 
+/** Primeira linha da grade vira o cabeçalho; as demais viram objetos {coluna: valor}. */
+function gradeParaLinhas(grade: PlanilhaGrade): PlanilhaLinha[] {
+  if (grade.length === 0) return [];
+  const cabecalho = (grade[0] ?? []).map((celula, indice) => comoTexto(celula) ?? `coluna_${indice + 1}`);
+
+  return grade.slice(1).map((linha) => {
+    const objeto: PlanilhaLinha = {};
+    cabecalho.forEach((chave, indice) => {
+      objeto[chave] = (linha[indice] ?? null) as JsonValue;
+    });
+    return objeto;
+  });
+}
+
 /** Converte as chaves de uma linha para os nomes canônicos conhecidos, preservando as demais. */
 function mapearLinha(linha: PlanilhaLinha): PlanilhaLinha {
   const mapeada: PlanilhaLinha = {};
@@ -85,17 +121,6 @@ function mapearLinha(linha: PlanilhaLinha): PlanilhaLinha {
     mapeada[chaveCanonica] = valor;
   }
   return mapeada;
-}
-
-function comoTexto(valor: unknown): string | undefined {
-  if (valor === null || valor === undefined || valor === '') return undefined;
-  return String(valor).trim();
-}
-
-function comoNumero(valor: unknown): number | undefined {
-  if (valor === null || valor === undefined || valor === '') return undefined;
-  const numero = typeof valor === 'number' ? valor : Number(String(valor).replace(',', '.'));
-  return Number.isNaN(numero) ? undefined : numero;
 }
 
 /** Determina qual entrega uma linha pertence, para agrupar linhas da mesma entrega em um único recibo. */
@@ -122,14 +147,10 @@ interface GrupoEmConstrucao {
 }
 
 /**
- * Transforma as linhas cruas da planilha em recibos preparados por
- * escola/entrega: mapeia cabeçalhos, agrupa linhas da mesma entrega, valida
- * cada registro e já classifica cada recibo com um status (pronto / pendente
- * de revisão / com erro bloqueante). O usuário revisa o resultado — não
- * digita nada disso manualmente.
+ * Planilha "tabela": mapeia cabeçalhos, agrupa linhas da mesma entrega,
+ * valida cada registro e classifica cada recibo com um status.
  */
-export function normalizeSpreadsheetData(linhas: PlanilhaLinha[]): ResultadoImportacao {
-  const hashConteudo = gerarHash(JSON.stringify(linhas));
+function normalizarTabela(linhas: PlanilhaLinha[]): ResultadoImportacao {
   const avisos: string[] = [];
 
   if (linhas.length === 0) {
@@ -141,7 +162,7 @@ export function normalizeSpreadsheetData(linhas: PlanilhaLinha[]): ResultadoImpo
       totalComErro: 0,
       totalDuplicados: 0,
       avisos: ['A planilha está vazia ou não possui dados.'],
-      hashConteudo,
+      hashConteudo: '',
     };
   }
 
@@ -278,6 +299,243 @@ export function normalizeSpreadsheetData(linhas: PlanilhaLinha[]): ResultadoImpo
     totalComErro: recibos.filter((r) => r.status === 'com_erro').length,
     totalDuplicados,
     avisos,
-    hashConteudo,
+    hashConteudo: '',
   };
+}
+
+// =====================================================================
+// Formato "matriz": planilhas reais de pedido costumam trazer as escolas
+// nas linhas e os produtos nas colunas, com um bloco de cabeçalho marcado
+// por uma célula "ENTREGA DIA dd/mm/aaaa" — bem diferente de uma tabela
+// simples. Detectar esse formato evita que a planilha real da empresa seja
+// lida como se todas as colunas/linhas estivessem vazias.
+// =====================================================================
+
+const REGEX_ENTREGA_DIA = /entrega\s+dia/i;
+const REGEX_DATA = /(\d{2})\/(\d{2})\/(\d{4})/;
+const REGEX_PREFEITURA = /prefeitura\s+(?:municipal\s+)?de\s+([a-zà-úçã\s]+)/i;
+const REGEX_NUMERACAO = /^\s*(\d+)\.\s*/;
+const REGEX_HORARIO = /(\d{1,2})(?:[:h]\d{2})?\s*\b(?:as|às|a|até)\b\s*(\d{1,2})(?:[:h]\d{2})?/i;
+const REGEX_LIMPEZA_FINAL = /(\s*[-–:]\s*|\s+(?:funciona|de)\b\s*)+$/i;
+
+interface BlocoMatriz {
+  linhaEntrega: number;
+  dataIso: string | null;
+}
+
+/** Procura por células "ENTREGA DIA dd/mm/aaaa" — cada uma marca o início de um bloco de escolas × produtos. */
+function detectarBlocosMatriz(grade: PlanilhaGrade): BlocoMatriz[] {
+  const blocos: BlocoMatriz[] = [];
+  for (let i = 0; i < grade.length; i += 1) {
+    const primeiraCelula = comoTexto(grade[i]?.[0]);
+    if (primeiraCelula && REGEX_ENTREGA_DIA.test(primeiraCelula)) {
+      const matchData = primeiraCelula.match(REGEX_DATA);
+      const dataIso = matchData ? `${matchData[3]}-${matchData[2]}-${matchData[1]}` : null;
+      blocos.push({ linhaEntrega: i, dataIso });
+    }
+  }
+  return blocos;
+}
+
+/** "PREFEITURA DE ESMERALDAS" em alguma célula do topo vira o município de todas as escolas do arquivo. */
+function detectarMunicipio(grade: PlanilhaGrade): string | null {
+  for (let i = 0; i < Math.min(6, grade.length); i += 1) {
+    for (const celula of grade[i] ?? []) {
+      const texto = comoTexto(celula);
+      if (!texto) continue;
+      const match = texto.match(REGEX_PREFEITURA);
+      if (match) return limparEspacos(match[1]);
+    }
+  }
+  return null;
+}
+
+interface ColunaProduto {
+  indice: number;
+  produto: string;
+  unidade: string;
+}
+
+function extrairColunasProdutos(linhaProdutos: JsonValue[], linhaUnidades: JsonValue[]): ColunaProduto[] {
+  const colunas: ColunaProduto[] = [];
+  for (let i = 1; i < linhaProdutos.length; i += 1) {
+    const produto = comoTexto(linhaProdutos[i]);
+    if (produto) {
+      colunas.push({
+        indice: i,
+        produto: limparEspacos(produto),
+        unidade: limparEspacos(comoTexto(linhaUnidades[i]) ?? ''),
+      });
+    }
+  }
+  return colunas;
+}
+
+interface LinhaEscolaInterpretada {
+  nome: string;
+  horarioFuncionamento: string | null;
+  numeroLista: string | null;
+}
+
+/**
+ * A célula de uma escola costuma vir como texto livre, ex:
+ * "22. ALFEU RODRIGUES - Funciona 7:00 as 12:00". Extrai o nome e, quando
+ * dá para reconhecer, o horário de funcionamento — sem exigir um formato
+ * único, já que cada linha da planilha real escreve isso de um jeito.
+ */
+function interpretarLinhaEscola(textoOriginal: string): LinhaEscolaInterpretada {
+  const matchNumero = textoOriginal.match(REGEX_NUMERACAO);
+  const numeroLista = matchNumero ? matchNumero[1] : null;
+
+  const texto = limparEspacos(textoOriginal.replace(REGEX_NUMERACAO, ''));
+  const matchHorario = texto.match(REGEX_HORARIO);
+
+  let nome = texto;
+  let horarioFuncionamento: string | null = null;
+
+  if (matchHorario && matchHorario.index !== undefined) {
+    horarioFuncionamento = limparEspacos(matchHorario[0]);
+    const idxFunciona = texto.search(/funciona/i);
+    const corteEm = idxFunciona >= 0 ? idxFunciona : matchHorario.index;
+    nome = texto.slice(0, corteEm);
+  }
+
+  nome = limparEspacos(nome.replace(REGEX_LIMPEZA_FINAL, ''));
+
+  return { nome: nome || limparEspacos(textoOriginal), horarioFuncionamento, numeroLista };
+}
+
+function normalizarMatriz(grade: PlanilhaGrade, blocos: BlocoMatriz[]): ResultadoImportacao {
+  const avisos: string[] = [];
+  const recibos: ReciboPreparado[] = [];
+  const municipio = detectarMunicipio(grade);
+  let totalLinhas = 0;
+
+  blocos.forEach((bloco, indiceBloco) => {
+    const linhaProdutos = grade[bloco.linhaEntrega] ?? [];
+    const linhaUnidades = grade[bloco.linhaEntrega + 1] ?? [];
+    const colunasProdutos = extrairColunasProdutos(linhaProdutos, linhaUnidades);
+
+    if (colunasProdutos.length === 0) {
+      avisos.push(`Bloco na linha ${bloco.linhaEntrega + 1}: nenhuma coluna de produto identificada.`);
+      return;
+    }
+
+    const proximoBloco = blocos[indiceBloco + 1]?.linhaEntrega ?? grade.length;
+    const inicioLinhasEscola = bloco.linhaEntrega + 2;
+
+    for (let i = inicioLinhasEscola; i < proximoBloco; i += 1) {
+      const linha = grade[i] ?? [];
+      const primeiraCelula = comoTexto(linha[0]);
+      if (!primeiraCelula) continue; // linha em branco usada só como espaçador
+      if (/^total\b/i.test(primeiraCelula)) break; // linha de totais encerra o bloco
+
+      totalLinhas += 1;
+      const { nome, horarioFuncionamento, numeroLista } = interpretarLinhaEscola(primeiraCelula);
+
+      const itens: ItemEntrega[] = [];
+      for (const coluna of colunasProdutos) {
+        const quantidade = comoNumero(linha[coluna.indice]);
+        if (quantidade !== undefined && quantidade > 0) {
+          itens.push({ produto: coluna.produto, unidade: coluna.unidade || null, quantidade });
+        }
+      }
+
+      const problemas: ProblemaRecibo[] = [
+        {
+          campo: 'endereco',
+          mensagem: `Endereço não informado para "${nome}" — a planilha não traz esse dado, só o nome da escola.`,
+          severidade: 'aviso',
+        },
+      ];
+
+      if (numeroLista) {
+        problemas.push({
+          campo: 'numeroPedido',
+          mensagem: `Número do pedido (${numeroLista}) inferido pela posição na lista da planilha — confirme antes de gerar.`,
+          severidade: 'aviso',
+        });
+      }
+
+      if (itens.length === 0) {
+        problemas.push({
+          mensagem: `Nenhum item com quantidade informada para "${nome}".`,
+          severidade: 'erro',
+        });
+      }
+
+      const entrega: Entrega = {
+        codigoEntrega: `${bloco.dataIso ?? 'entrega'}-${numeroLista ?? i}`,
+        numeroPedido: numeroLista ?? '',
+        dataEntrega: bloco.dataIso ?? '',
+        status: 'pendente',
+        escola: {
+          codigoEscola: '',
+          nome,
+          cnpj: '',
+          endereco: { rua: '', numero: '', bairro: null, cidade: municipio ?? '', uf: null, cep: null },
+          horarioFuncionamento,
+        },
+        itens,
+        observacoes: null,
+        responsavelRecebimento: null,
+      };
+
+      const temErro = problemas.some((p) => p.severidade === 'erro');
+      const status: StatusPreparoRecibo = temErro ? 'com_erro' : 'pendente';
+
+      recibos.push({
+        id: `importado-matriz-${bloco.linhaEntrega}-${i}`,
+        entrega,
+        status,
+        problemas,
+        origem: 'importacao',
+      });
+    }
+  });
+
+  return {
+    recibos,
+    totalLinhas,
+    totalEscolas: recibos.length,
+    totalRecibosPreparados: recibos.length,
+    totalComErro: recibos.filter((r) => r.status === 'com_erro').length,
+    totalDuplicados: 0,
+    avisos,
+    hashConteudo: '',
+  };
+}
+
+// =====================================================================
+// Ponto de entrada: decide qual formato a planilha usa e delega.
+// =====================================================================
+
+/**
+ * Transforma a grade bruta da planilha em recibos preparados por escola.
+ * Detecta automaticamente entre o formato "matriz" (escolas nas linhas,
+ * produtos nas colunas, com um marcador "ENTREGA DIA") e o formato "tabela"
+ * (uma linha por item). O usuário revisa o resultado — não digita nada
+ * disso manualmente.
+ */
+export function normalizeSpreadsheetData(grade: PlanilhaGrade): ResultadoImportacao {
+  const hashConteudo = gerarHash(JSON.stringify(grade));
+
+  if (grade.length === 0) {
+    return {
+      recibos: [],
+      totalLinhas: 0,
+      totalEscolas: 0,
+      totalRecibosPreparados: 0,
+      totalComErro: 0,
+      totalDuplicados: 0,
+      avisos: ['A planilha está vazia ou não possui dados.'],
+      hashConteudo,
+    };
+  }
+
+  const blocos = detectarBlocosMatriz(grade);
+  const resultado =
+    blocos.length > 0 ? normalizarMatriz(grade, blocos) : normalizarTabela(gradeParaLinhas(grade));
+
+  return { ...resultado, hashConteudo };
 }
