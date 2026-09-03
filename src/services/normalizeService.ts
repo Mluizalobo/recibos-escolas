@@ -35,6 +35,9 @@ const MAPA_COLUNAS: Record<string, string> = {
   uf: 'uf',
   estado: 'uf',
   cep: 'cep',
+  horario: 'horarioFuncionamento',
+  horariofuncionamento: 'horarioFuncionamento',
+  horariodefuncionamento: 'horarioFuncionamento',
   pedido: 'numeroPedido',
   numeropedido: 'numeroPedido',
   nropedido: 'numeroPedido',
@@ -52,6 +55,9 @@ const MAPA_COLUNAS: Record<string, string> = {
   quantidade: 'quantidade',
   qtd: 'quantidade',
   qtde: 'quantidade',
+  unid: 'unidade',
+  unidade: 'unidade',
+  un: 'unidade',
   valor: 'valor',
   valorunitario: 'valor',
   preco: 'valor',
@@ -175,6 +181,7 @@ export function normalizeSpreadsheetData(linhas: PlanilhaLinha[]): ResultadoImpo
         uf: comoTexto(linha.uf) ?? null,
         cep: comoTexto(linha.cep) ?? null,
       },
+      horarioFuncionamento: comoTexto(linha.horarioFuncionamento) ?? null,
     };
 
     let grupo = grupos.get(chave);
@@ -194,13 +201,6 @@ export function normalizeSpreadsheetData(linhas: PlanilhaLinha[]): ResultadoImpo
       };
       grupos.set(chave, grupo);
 
-      if (!escola.cnpj) {
-        grupo.problemas.push({
-          campo: 'cnpj',
-          mensagem: `CNPJ não informado para "${nomeEscola}".`,
-          severidade: 'aviso',
-        });
-      }
       if (!escola.endereco.rua && !escola.endereco.cidade) {
         grupo.problemas.push({
           campo: 'endereco',
@@ -224,6 +224,7 @@ export function normalizeSpreadsheetData(linhas: PlanilhaLinha[]): ResultadoImpo
       const item: ItemEntrega = {
         produto,
         quantidade,
+        unidade: comoTexto(linha.unidade) ?? null,
         valor: comoNumero(linha.valor) ?? null,
       };
       grupo.entrega.itens.push(item);

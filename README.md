@@ -1,15 +1,19 @@
-# Recibos de Entrega — GP Distribuidora
+# Recibos de Entrega — Grupo Líder
 
 Aplicação web que substitui o processo manual de gerar recibos de entrega
 por escola a partir da planilha semanal (planilha → copiar dados no Word →
-imprimir um por um). O fluxo agora é:
+imprimir um por um). O fluxo é:
 
 **Importar a planilha semanal → o sistema organiza e valida por escola →
-usuário confere e corrige o que precisar → gera os PDFs.**
+usuário confere e corrige o que precisar → gera os PDFs no formato oficial.**
 
 O usuário atua como **conferente**, não como digitador: os dados de cada
 recibo vêm prontos da planilha, e a interface só pede intervenção manual nos
-casos com pendência (CNPJ ausente, endereço ausente, item não identificado).
+casos com pendência (endereço ausente, item não identificado).
+
+O recibo gerado é uma réplica fiel do modelo real fornecido pela empresa
+(recibo de entrega para prefeituras municipais, sem CNPJ, sem valores,
+numeração grande e tabela de produtos) — ver `ReciboTemplate.tsx`.
 
 O sistema também mantém uma tela de consulta avulsa (`Consultar Entrega`),
 cujo destaque é o `DynamicDataRenderer`: um componente que percorre qualquer
@@ -35,6 +39,13 @@ Publicado no GitHub Pages a cada push na branch `main` (workflow em
 `.github/workflows/deploy.yml`):
 **https://mluizalobo.github.io/recibos-escolas/**
 
+Login de demonstração (ver "Login" abaixo):
+
+| Usuário | Senha |
+|---|---|
+| `poliana` | `lider2026` |
+| `admin` | `grupolider` |
+
 Duas coisas existem só por causa do GitHub Pages ser hospedagem estática
 (sem servidor para reescrever rotas):
 
@@ -55,8 +66,19 @@ npm run preview   # serve o build de produção localmente
 
 Não é necessário nenhum backend ou variável de ambiente para rodar o
 projeto. Os dados de demonstração ficam em memória; o que é importado via
-planilha persiste no `localStorage` do navegador (recibos preparados e
-histórico de importações), então sobrevive a um recarregamento da página.
+planilha, os recibos corrigidos/excluídos, a sessão de login e o histórico
+de importações persistem no `localStorage` do navegador.
+
+## Login
+
+`src/services/authService.ts` faz um login **só de front-end**: valida
+usuário/senha contra uma lista fixa no próprio código e guarda a sessão no
+`localStorage`. **Isso não é segurança real** — qualquer pessoa com acesso
+ao código-fonte vê as senhas. Serve para dar à interface um controle básico
+de "quem está usando o sistema" (incluindo o perfil da Poliana) enquanto não
+existe um backend com autenticação de verdade. Trocar por login real é
+reescrever esse arquivo para chamar uma API de auth — `RotaProtegida` em
+`App.tsx` (que hoje só verifica `obterSessao()`) não precisa mudar.
 
 ## Fluxo principal (importação semanal)
 
@@ -73,74 +95,81 @@ recibosStore.ts                 → guarda os recibos preparados (localStorage)
       └─→ historyService.ts     → registra a importação no histórico semanal
       ▼
 BatchGenerator (tela "Recibos Preparados")
-      │  busca / filtro por status / corrigir pendências
+      │  busca / filtro por status / corrigir pendências / excluir
       ▼
 pdfService.ts                   → gera PDF individual ou um único PDF em lote
 ```
 
 Cada recibo preparado tem um status: **Pendente** (tem alguma pendência não
-bloqueante, ex. CNPJ ausente), **Pronto** (sem pendências), **Com erro**
+bloqueante, ex. endereço ausente), **Pronto** (sem pendências), **Com erro**
 (bloqueante, ex. nenhum item identificado para a escola), **Gerado** e
 **Impresso**. Pendências não bloqueantes podem ser corrigidas direto na tela
 (ícone de lápis); pendências de item ausente exigem corrigir a planilha de
 origem, já que a interface não deve inventar dados que não vieram dela.
+Recibos importados também podem ser excluídos da lista (ícone de lixeira) —
+os de demonstração não, para não sumirem "de verdade" a cada recarregamento.
 
 Reenviar uma planilha já processada (mesmo conteúdo) mostra um aviso antes
-de reprocessar, para evitar recibos duplicados.
+de reprocessar, para evitar recibos duplicados. Depois de processar, dá para
+abrir a planilha original (como foi lida, antes de qualquer normalização)
+para conferir contra os dados que o sistema organizou.
 
 ## Estrutura de pastas
 
 ```
 src/
 ├── components/     # UI reutilizável (renderer dinâmico, formulário, recibo,
-│                     lote/status, modal de correção, logo...)
-├── pages/          # Dashboard, Consulta, Importacao, Historico
+│                     lote/status, modal de correção, sidebar, logo...)
+├── pages/          # Dashboard, Consulta, Importacao, Historico,
+│                     RelatorioSemanal, DadosEmpresa, Login
 ├── services/
 │   ├── api.ts              # camada de consulta avulsa (troque aqui por uma API real)
 │   ├── excelService.ts     # leitura do arquivo + hash do conteúdo
 │   ├── normalizeService.ts # normalizeSpreadsheetData(): mapeia, agrupa, valida
-│   ├── recibosStore.ts     # estado dos recibos preparados (+ correção manual)
+│   ├── recibosStore.ts     # estado dos recibos preparados (+ correção/exclusão)
 │   ├── historyService.ts   # histórico de importações semanais
+│   ├── authService.ts      # login local (ver seção "Login")
 │   ├── pdfService.ts       # geração de PDF (individual e em lote)
-│   └── mockData.ts         # dados de demonstração para a Consulta
+│   └── mockData.ts         # dados da empresa + demonstração para a Consulta
 ├── utils/          # formatters, labelFormatter, validators, hash
 ├── types/          # tipos genéricos (JsonValue/JsonObject) e de domínio
 ├── hooks/          # useConsulta
-└── App.tsx         # rotas e layout
+└── App.tsx         # rotas, proteção de rota e layout
 ```
 
 Regra seguida no projeto inteiro: **UI, leitura de planilha, normalização e
 geração de PDF nunca ficam misturadas no mesmo arquivo.**
 
+## Navegação
+
+Barra lateral fixa no desktop (`src/components/Sidebar.tsx`), com menu
+retrátil no mobile: Dashboard, Consultar Entrega, Importar Planilha, Recibos
+Preparados, Histórico, Relatório Semanal e Dados da Empresa.
+
 ## Identidade visual
 
-O sistema já usa a marca real da **GP Distribuidora** (logotipo e paleta
-extraídos do arquivo oficial), configurada de forma centralizada — ajustar
-qualquer coisa depois é mexer em poucos lugares, não em cada componente:
+O sistema usa a marca real do **Grupo Líder** (logotipo e paleta extraídos
+do arquivo oficial), configurada de forma centralizada — ajustar qualquer
+coisa depois é mexer em poucos lugares, não em cada componente:
 
-- **Logo**: `src/assets/logo-gp.png` (recortado do arquivo enviado, só o
-  símbolo, sem a palavra "DISTRIBUIDORA" — em tamanho de ícone o nome já
-  aparece como texto ao lado, via `EMPRESA.nome`). `src/components/Logo.tsx`
-  usa `EMPRESA.logoUrl` (`src/services/mockData.ts`); se um dia faltar,
-  cai num ícone genérico. É o mesmo componente usado no cabeçalho do
-  sistema e no cabeçalho do recibo.
-- **Cores**: tokens no bloco `@theme` de `src/index.css`:
-  - `--color-brand` (`#0a6fae`) — usado em botões primários, links e
-    destaques (`bg-brand`, `text-brand`...). É uma versão mais escura do
-    ciano do logo (`#00a8e8`): o tom vivo puro não tem contraste
-    suficiente para texto branco em botão (~2.7:1); esta versão passa de
-    5:1.
-  - `--color-brand-accent` (`#00a8e8`) e `--color-brand-yellow`
-    (`#f5ee00`) — o ciano vivo e o amarelo do logo, usados só como
-    decoração pontual (o friso no topo do recibo), não em texto.
+- **Logo**: `src/assets/logo-gl-icon.png` (só o símbolo, usado no menu e no
+  ícone da aba) e `logo-gl-lockup.png` (símbolo + "Grupo Líder" por extenso,
+  usado na tela de login e em Dados da Empresa). `src/components/Logo.tsx`
+  lê `EMPRESA.logoUrl`/`logoLockupUrl` (`src/services/mockData.ts`); se um
+  dia faltar, cai num ícone genérico.
+- **Cores**: tokens no bloco `@theme` de `src/index.css` — `--color-brand`
+  (`#123a1a`, o verde do logo) e `--color-brand-dark`/`--color-brand-light`
+  derivados dele. O verde já é escuro o bastante para texto branco em botão
+  (~14:1 de contraste), então não precisou de uma versão "segura" separada
+  como aconteceria com uma cor clara.
 
-Cores de status (verde/âmbar/vermelho/roxo nos badges de situação da
+Cores de status (verde/âmbar/vermelho/azul/roxo nos badges de situação da
 entrega e do recibo) são propositalmente independentes da marca — não devem
 mudar se a paleta principal mudar.
 
-CNPJ e endereço em `EMPRESA` (`src/services/mockData.ts`) ainda são
-placeholder — trocar pelos dados reais de cadastro da empresa quando
-disponíveis.
+CNPJ, endereço, telefone e e-mail em `EMPRESA` (`src/services/mockData.ts`,
+exibidos em Dados da Empresa) ainda são placeholder — trocar pelos dados
+reais de cadastro quando disponíveis.
 
 ## Onde configurar a fonte de dados
 
@@ -164,13 +193,14 @@ passariam a chamar uma API). Nenhum componente de página precisa mudar.
 
 ## Onde alterar o modelo do recibo
 
-O layout vive isolado em `src/components/ReciboTemplate.tsx`. Ele **não
-assume um schema fixo**: extrai cada campo (nome da escola, CNPJ, endereço,
-pedido, itens, observações, responsável) tentando múltiplos caminhos
-possíveis dentro do JSON. Quando o modelo Word oficial da empresa for
-definido, ajuste esse componente (cabeçalho, campos exibidos, texto de
-assinatura, posição do carimbo) — `ReciboPreview.tsx` e `pdfService.ts` não
-precisam mudar.
+O layout vive isolado em `src/components/ReciboTemplate.tsx` e já segue o
+modelo oficial real (cabeçalho com razão social, destinatário — prefeitura/
+escola/horário/endereço —, numeração grande, tabela DESCRIÇÃO/UNID/QUANT
+com linhas em branco, rodapé "Recebido por"/"Data"). Ele **não assume um
+schema fixo**: extrai cada campo tentando múltiplos caminhos possíveis
+dentro do JSON, então continua funcionando mesmo que a estrutura da entrega
+mude. Ajustes futuros (novo campo obrigatório, mudança no cabeçalho) são só
+nesse componente — `ReciboPreview.tsx` e `pdfService.ts` não precisam mudar.
 
 ## Identificadores de busca
 
@@ -179,6 +209,8 @@ Novos tipos de identificador (ex: "turma", "regional") são adicionados em um
 
 ## Limitações conhecidas
 
+- O login é só de front-end (ver seção "Login") — não usar como controle de
+  acesso real a dados sensíveis.
 - O bundle de produção passa de 500 kB porque `xlsx`, `jspdf` e
   `html2canvas-pro` são carregados de início. Vale trocar os `import`
   estáticos dessas libs por `import()` dinâmico nas páginas que as usam.
@@ -186,40 +218,37 @@ Novos tipos de identificador (ex: "turma", "regional") são adicionados em um
   disponível (`npm audit`). O risco é baixo aqui porque o arquivo processado
   é a planilha interna da própria empresa, não um upload de terceiros — mas
   vale reavaliar se o fluxo de importação for aberto a outras origens.
-- O histórico de importações e os recibos preparados ficam no `localStorage`
-  do navegador — trocar de computador ou limpar dados do site reinicia esse
-  estado. Isso é esperado nesta fase (sem backend); a arquitetura
-  (`historyService.ts`, `recibosStore.ts`) já está isolada para migrar para
-  uma API/banco depois sem tocar nas telas.
+- Histórico, recibos preparados, correções e sessão de login ficam no
+  `localStorage` do navegador — trocar de computador ou limpar dados do
+  site reinicia esse estado. Isso é esperado nesta fase (sem backend); a
+  arquitetura (`historyService.ts`, `recibosStore.ts`, `authService.ts`) já
+  está isolada para migrar para uma API/banco depois sem tocar nas telas.
 
-## Perguntas que faltam para conectar a fonte de dados definitiva
+## Perguntas que ainda faltam
 
-1. Qual é a estrutura atual da planilha (nomes exatos das colunas)?
-2. Existe mais de uma aba, ou os dados sempre vêm na primeira?
-3. Qual é o identificador usado para localizar a escola no dia a dia:
-   código, CNPJ, nome, número do pedido?
-4. Como identificar que várias linhas pertencem à mesma entrega (mesmo
-   pedido, mesmo código de entrega, ou outra regra)? Hoje a prioridade é
-   código da entrega → pedido → CNPJ+data → nome da escola.
-5. Existe numeração sequencial própria para os recibos?
-6. Qual é o modelo Word atual usado para o recibo?
-7. Existe logotipo da empresa em arquivo separado (para usar no cabeçalho)?
-8. Quais campos são obrigatórios no recibo final, e quais tornam um recibo
-   bloqueante ("com erro") se estiverem ausentes?
-9. O responsável pela escola assina fisicamente o papel impresso, ou a
-   assinatura também pode ser digital?
-10. O recibo precisa de espaço reservado para carimbo? (já existe um
-    placeholder pronto no template)
-11. Qual é a paleta de cores e a tipografia oficiais da empresa?
-12. A planilha semanal costuma repetir escolas de semanas anteriores? Isso
-    ajudaria a refinar a regra de detecção de duplicidade.
+1. Existe mais de uma aba na planilha, ou os dados sempre vêm na primeira?
+2. Além de código da entrega/pedido/CNPJ+data/nome da escola (nessa ordem de
+   prioridade hoje), existe outra regra para saber que várias linhas
+   pertencem à mesma entrega?
+3. A numeração grande do recibo (hoje mapeada do "Pedido") é sequencial por
+   entrega, por rota do dia, ou outra lógica?
+4. Quais campos são realmente obrigatórios para o recibo ser válido perante
+   a prefeitura — hoje só "nenhum item" bloqueia ("Com erro"); endereço
+   ausente é só aviso ("Pendente").
+5. O "Recebido por" é sempre assinado fisicamente no papel impresso, ou
+   pode vir preenchido já na planilha (nome de quem vai receber)?
+6. CNPJ, endereço, telefone e e-mail reais da empresa, para a tela Dados da
+   Empresa e o cabeçalho do sistema.
+7. Login de verdade: existe (ou vai existir) um backend/provedor de
+   autenticação, ou o controle de acesso deve continuar simples assim?
 
 ## O que já funciona ponta a ponta
 
-Importar planilha → normalizar/agrupar linhas por escola/entrega → validar e
-classificar cada recibo (pronto/pendente/com erro) → avisar se a planilha já
-foi processada antes → conferir e corrigir pendências → buscar por
-nome/código/CNPJ/pedido/código de entrega → ver os dados renderizados
-dinamicamente → gerar recibo → visualizar → gerar PDF (individual ou em
-lote, um por escola ou um único arquivo) ou imprimir → consultar o histórico
-de importações semanais.
+Login → importar planilha → ver a planilha original lida → normalizar/
+agrupar linhas por escola/entrega → validar e classificar cada recibo
+(pronto/pendente/com erro) → avisar se a planilha já foi processada antes →
+conferir, corrigir ou excluir → buscar por nome/código/CNPJ/pedido/código de
+entrega → ver os dados renderizados dinamicamente → gerar o recibo no
+formato oficial → visualizar → gerar PDF (individual ou em lote, um por
+escola ou um único arquivo) ou imprimir → consultar o histórico de
+importações semanais, o relatório semanal e os dados da empresa.

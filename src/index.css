@@ -1,23 +1,18 @@
 @import "tailwindcss";
 
 /*
- * Identidade visual da GP Distribuidora, extraída do logotipo oficial
- * (src/assets/logo-gp.png). Os componentes usam as classes
- * bg-brand/text-brand/border-brand (e bg-brand-accent/bg-brand-yellow para
- * os toques decorativos do ciano vivo e do amarelo da marca) geradas a
- * partir destes tokens — trocar a marca no sistema inteiro é alterar só os
- * valores abaixo (mais o arquivo do logo).
- *
- * --color-brand é uma versão mais escura do ciano do logo (#00a8e8):
- * o tom vivo, usado puro, não tem contraste suficiente para texto branco
- * em botões (~2.7:1); esta versão passa de 5:1.
+ * Identidade visual do Grupo Líder, extraída do logotipo oficial
+ * (src/assets/logo-gl-icon.png / logo-gl-lockup.png). Os componentes usam
+ * as classes bg-brand/text-brand/border-brand geradas a partir destes
+ * tokens — trocar a marca no sistema inteiro é alterar só os valores
+ * abaixo (mais os arquivos do logo). O verde do logo já é escuro o
+ * suficiente para texto branco em botão (~14:1 de contraste), então
+ * --color-brand usa o tom real da marca, sem precisar escurecer.
  */
 @theme {
-  --color-brand: #0a6fae;
-  --color-brand-dark: #085a8c;
-  --color-brand-light: #e5f4fc;
-  --color-brand-accent: #00a8e8;
-  --color-brand-yellow: #f5ee00;
+  --color-brand: #123a1a;
+  --color-brand-dark: #0a2510;
+  --color-brand-light: #e7f2e9;
 }
 
 :root {

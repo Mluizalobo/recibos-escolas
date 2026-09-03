@@ -58,6 +58,8 @@ export interface Escola {
   nome: string;
   cnpj: string;
   endereco: Endereco;
+  /** Ex: "07h às 12h" — aparece no recibo oficial junto do endereço da escola. */
+  horarioFuncionamento?: string | null;
 }
 
 export interface Entrega {
@@ -73,10 +75,18 @@ export interface Entrega {
 }
 
 export interface Empresa {
+  /** Nome fantasia / marca (ex: "Grupo Líder"). */
   nome: string;
+  /** Razão social — é esse nome que aparece no cabeçalho oficial do recibo. */
+  razaoSocial?: string;
   cnpj?: string;
   endereco?: string;
+  telefone?: string;
+  email?: string;
+  /** Ícone da marca, usado em navegação/favicon-like. */
   logoUrl?: string;
+  /** Logo + nome por extenso, para telas com mais espaço (login, dados da empresa). */
+  logoLockupUrl?: string;
 }
 
 /** Registro de um recibo já gerado nesta sessão (usado no "Gerados recentemente" do Dashboard). */

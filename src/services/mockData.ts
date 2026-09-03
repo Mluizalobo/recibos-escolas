@@ -1,5 +1,6 @@
 import type { Empresa, JsonObject, SearchType } from '../types';
-import logoGp from '../assets/logo-gp.png';
+import logoIcone from '../assets/logo-gl-icon.png';
+import logoLockup from '../assets/logo-gl-lockup.png';
 
 /**
  * Cada registro mockado guarda os valores pelos quais pode ser encontrado
@@ -16,51 +17,58 @@ export interface MockRegistro {
 }
 
 export const EMPRESA: Empresa = {
-  nome: 'GP Distribuidora',
-  // CNPJ e endereço ainda são placeholder — trocar pelos dados reais da empresa quando disponíveis.
+  nome: 'Grupo Líder',
+  razaoSocial: 'Líder BHZ Comércio e Serviços LTDA',
+  // CNPJ, endereço, telefone e e-mail ainda são placeholder — trocar pelos dados reais quando disponíveis.
   cnpj: '00.111.222/0001-33',
-  endereco: 'Rod. BR-040, Km 12 — Distrito Industrial, Congonhas/MG',
-  logoUrl: logoGp,
+  endereco: 'Belo Horizonte/MG',
+  telefone: '(31) 0000-0000',
+  email: 'contato@grupolider.com.br',
+  logoUrl: logoIcone,
+  logoLockupUrl: logoLockup,
 };
 
 export const MOCK_REGISTROS: MockRegistro[] = [
   {
     id: 'reg-001',
     buscaValores: {
-      nome: 'em josé da silva',
+      nome: 'em alfeu rodrigues',
       codigo_escola: 'esc-001',
-      cnpj: '12345678000190',
-      pedido: '12345',
-      codigo_entrega: 'ent-2026-001',
+      pedido: '12',
+      codigo_entrega: 'ent-2026-012',
     },
+    // Réplica do recibo real fornecido como modelo (mesma escola, itens e número).
     dados: {
       codigoEscola: 'ESC-001',
-      nome: 'EM José da Silva',
-      cnpj: '12.345.678/0001-90',
+      nome: 'E.M. Alfeu Rodrigues',
+      cnpj: '',
       endereco: {
-        rua: 'Rua das Flores',
-        numero: 245,
-        bairro: 'Centro',
-        cidade: 'Congonhas',
+        rua: 'Rodovia dos Bandeirantes LMG 808, Km 17,5 — S/N',
+        numero: '',
+        bairro: 'Chácaras das Esmeraldas',
+        cidade: 'Esmeraldas',
         uf: 'MG',
-        cep: '36415-000',
       },
-      codigoEntrega: 'ENT-2026-001',
-      numeroPedido: '12345',
-      dataEntrega: '2026-09-02',
+      horarioFuncionamento: '07h às 12h',
+      codigoEntrega: 'ENT-2026-012',
+      numeroPedido: '12',
+      dataEntrega: '2026-07-02',
       status: 'entregue',
       itens: [
-        { produto: 'Caderno Universitário', quantidade: 50, valor: 10 },
-        { produto: 'Caneta Esferográfica', quantidade: 100, valor: 2 },
-        { produto: 'Lápis de Cor (caixa)', quantidade: 30, valor: 15.5 },
-        { produto: 'Borracha', quantidade: 40, valor: 1.2 },
+        { produto: 'Alho Descascado', unidade: 'KG', quantidade: 1 },
+        { produto: 'Cebola', unidade: 'KG', quantidade: 4 },
+        { produto: 'Cenoura', unidade: 'KG', quantidade: 4 },
+        { produto: 'Batata', unidade: 'KG', quantidade: 4 },
+        { produto: 'Tomate', unidade: 'KG', quantidade: 4 },
+        { produto: 'Batata Doce', unidade: 'KG', quantidade: 2 },
+        { produto: 'Repolho Verde', unidade: 'KG', quantidade: 3 },
+        { produto: 'Ovos Vermelhos', unidade: 'DZ', quantidade: 4 },
+        { produto: 'Maçã', unidade: 'KG', quantidade: 10 },
+        { produto: 'Banana', unidade: 'KG', quantidade: 10 },
+        { produto: 'Laranja', unidade: 'KG', quantidade: 6 },
       ],
-      observacoes: [
-        'Entrega realizada no período da manhã',
-        'Conferido pela diretora no ato do recebimento',
-      ],
-      valorTotal: 1163,
-      responsavelRecebimento: 'Maria Aparecida Santos',
+      observacoes: null,
+      responsavelRecebimento: null,
     },
   },
   {
@@ -68,28 +76,32 @@ export const MOCK_REGISTROS: MockRegistro[] = [
     buscaValores: {
       nome: 'em maria souza',
       codigo_escola: 'esc-002',
-      cnpj: '98765432000110',
-      pedido: '12346',
-      codigo_entrega: 'ent-2026-002',
+      pedido: '13',
+      codigo_entrega: 'ent-2026-013',
     },
     dados: {
       codigoEscola: 'ESC-002',
-      nome: 'EM Maria Souza',
-      cnpj: '98.765.432/0001-10',
+      nome: 'E.M. Maria Souza',
+      cnpj: '',
       endereco: {
-        rua: 'Avenida Brasil',
-        numero: 1000,
-        cidade: 'Congonhas',
+        rua: 'Rua Principal, S/N',
+        numero: '',
+        bairro: 'Centro',
+        cidade: 'Esmeraldas',
         uf: 'MG',
       },
-      codigoEntrega: 'ENT-2026-002',
-      numeroPedido: '12346',
-      dataEntrega: '2026-09-02',
+      horarioFuncionamento: '07h às 13h',
+      codigoEntrega: 'ENT-2026-013',
+      numeroPedido: '13',
+      dataEntrega: '2026-07-02',
       status: 'entregue',
-      itens: [{ produto: 'Resma de Papel A4', quantidade: 20, valor: 25 }],
+      itens: [
+        { produto: 'Feijão Carioca', unidade: 'KG', quantidade: 20 },
+        { produto: 'Arroz Branco', unidade: 'KG', quantidade: 30 },
+        { produto: 'Ovos Brancos', unidade: 'DZ', quantidade: 6 },
+      ],
       observacoes: null,
-      valorTotal: 500,
-      responsavelRecebimento: 'João Batista Oliveira',
+      responsavelRecebimento: null,
     },
   },
   {
@@ -97,8 +109,7 @@ export const MOCK_REGISTROS: MockRegistro[] = [
     buscaValores: {
       nome: 'escola municipal central',
       codigo_escola: 'emc-777',
-      cnpj: '11222333000144',
-      pedido: '9987',
+      pedido: '14',
     },
     // Estrutura deliberadamente diferente das duas anteriores: nomes de campo,
     // aninhamento e formato dos itens não seguem o mesmo "schema". Serve para
@@ -107,14 +118,12 @@ export const MOCK_REGISTROS: MockRegistro[] = [
       identificacao: {
         unidadeEscolar: 'Escola Municipal Central',
         codigo: 'EMC-777',
-        cnpjUnidade: '11.222.333/0001-44',
       },
       entregaInfo: {
-        numeroPedido: '9987',
-        dataPrevista: '2026-09-03',
-        dataRealizada: '2026-09-03T14:30:00Z',
+        numeroPedido: '14',
+        dataPrevista: '2026-07-03',
+        dataRealizada: '2026-07-03T08:30:00Z',
         statusEntrega: 'parcial',
-        temperaturaControlada: true,
         exigeAssinatura: true,
       },
       itensRecebidos: [
@@ -125,9 +134,9 @@ export const MOCK_REGISTROS: MockRegistro[] = [
           validade: '2026-12-01',
         },
         {
-          descricaoProduto: 'Uniforme Escolar',
-          tamanhosDisponiveis: ['P', 'M', 'G'],
-          quantidadeTotal: 60,
+          descricaoProduto: 'Frutas da Estação (sortidas)',
+          tiposIncluidos: ['Maçã', 'Banana', 'Laranja'],
+          quantidadeTotal: 45,
         },
       ],
       transporte: {

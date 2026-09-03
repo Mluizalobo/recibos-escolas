@@ -1,13 +1,14 @@
 import { useRef, useState, type DragEvent } from 'react';
 import { Link } from 'react-router-dom';
-import { AlertCircle, AlertTriangle, CheckCircle2, FileSpreadsheet, UploadCloud } from 'lucide-react';
+import { AlertCircle, AlertTriangle, CheckCircle2, Eye, EyeOff, FileSpreadsheet, UploadCloud } from 'lucide-react';
 import { validarArquivoPlanilha } from '../utils/validators';
 import { calcularHashPlanilha, lerArquivoExcel } from '../services/excelService';
 import { normalizeSpreadsheetData } from '../services/normalizeService';
 import { registrarEntregasImportadas } from '../services/api';
 import { definirRecibosImportados } from '../services/recibosStore';
 import { encontrarImportacaoDuplicada, registrarImportacao } from '../services/historyService';
-import type { ImportacaoHistorico, PlanilhaLinha, ResultadoImportacao } from '../types';
+import DataTable from '../components/DataTable';
+import type { ImportacaoHistorico, JsonObject, PlanilhaLinha, ResultadoImportacao } from '../types';
 
 type StatusProcessamento = 'selecionado' | 'processando' | 'concluido' | 'erro';
 
@@ -53,11 +54,15 @@ export default function Importacao() {
   const [erroProcessamento, setErroProcessamento] = useState<string | null>(null);
   const [resultado, setResultado] = useState<ResultadoImportacao | null>(null);
   const [duplicataPendente, setDuplicataPendente] = useState<DuplicataPendente | null>(null);
+  const [linhasBrutas, setLinhasBrutas] = useState<PlanilhaLinha[] | null>(null);
+  const [mostrarBruta, setMostrarBruta] = useState(false);
 
   function selecionarArquivo(file: File | undefined) {
     setResultado(null);
     setErroProcessamento(null);
     setDuplicataPendente(null);
+    setLinhasBrutas(null);
+    setMostrarBruta(false);
 
     if (!file) return;
 
@@ -90,6 +95,7 @@ export default function Importacao() {
     try {
       const linhas = forcado?.linhas ?? (await lerArquivoExcel(arquivo));
       const hash = forcado?.hash ?? calcularHashPlanilha(linhas);
+      setLinhasBrutas(linhas);
 
       if (!forcado) {
         const duplicata = encontrarImportacaoDuplicada(hash);
@@ -287,6 +293,36 @@ export default function Importacao() {
               </Link>{' '}
               para conferir, corrigir o que tiver pendência e gerar os PDFs.
             </p>
+          )}
+        </div>
+      )}
+
+      {linhasBrutas && linhasBrutas.length > 0 && (
+        <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+          <button
+            type="button"
+            onClick={() => setMostrarBruta((v) => !v)}
+            className="flex w-full items-center justify-between text-left"
+          >
+            <span className="text-sm font-semibold text-gray-800">
+              Planilha original ({linhasBrutas.length} linha{linhasBrutas.length === 1 ? '' : 's'})
+            </span>
+            {mostrarBruta ? (
+              <EyeOff className="h-4 w-4 text-gray-400" aria-hidden="true" />
+            ) : (
+              <Eye className="h-4 w-4 text-gray-400" aria-hidden="true" />
+            )}
+          </button>
+
+          {mostrarBruta && (
+            <div className="mt-4">
+              <DataTable rows={linhasBrutas.slice(0, 100) as JsonObject[]} />
+              {linhasBrutas.length > 100 && (
+                <p className="mt-2 text-xs text-gray-400">
+                  Mostrando as primeiras 100 de {linhasBrutas.length} linhas.
+                </p>
+              )}
+            </div>
           )}
         </div>
       )}

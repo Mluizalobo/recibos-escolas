@@ -1,9 +1,10 @@
 import { useMemo, useRef, useState } from 'react';
-import { CheckSquare, Eye, FileDown, Pencil, Search, Square } from 'lucide-react';
+import { CheckSquare, Eye, FileDown, Pencil, Search, Square, Trash2 } from 'lucide-react';
 import {
   atualizarStatusRecibo,
   corrigirRecibo,
   listarRecibosPreparados,
+  removerRecibo,
   type DadosCorrecaoRecibo,
 } from '../services/recibosStore';
 import { EMPRESA } from '../services/api';
@@ -141,6 +142,22 @@ export default function BatchGenerator() {
     recarregar();
   }
 
+  function handleExcluir(recibo: ReciboPreparado) {
+    const confirmado = window.confirm(
+      `Excluir o recibo de "${recibo.entrega.escola.nome}"? Essa ação não pode ser desfeita.`,
+    );
+    if (!confirmado) return;
+
+    removerRecibo(recibo.id);
+    setSelecionados((atual) => {
+      if (!atual.has(recibo.id)) return atual;
+      const novo = new Set(atual);
+      novo.delete(recibo.id);
+      return novo;
+    });
+    recarregar();
+  }
+
   if (visualizando) {
     return (
       <ReciboPreview
@@ -265,6 +282,16 @@ export default function BatchGenerator() {
                   >
                     <FileDown className="h-4 w-4" aria-hidden="true" />
                   </button>
+                  {recibo.origem === 'importacao' && (
+                    <button
+                      type="button"
+                      onClick={() => handleExcluir(recibo)}
+                      aria-label={`Excluir recibo de ${recibo.entrega.escola.nome}`}
+                      className="rounded-md p-2 text-gray-500 hover:bg-red-50 hover:text-red-600"
+                    >
+                      <Trash2 className="h-4 w-4" aria-hidden="true" />
+                    </button>
+                  )}
                 </div>
               </li>
             ))}

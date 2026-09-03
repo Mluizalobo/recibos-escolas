@@ -10,48 +10,58 @@ const CHAVE_LOCALSTORAGE = 'recibos-escolas:recibos-importados';
  */
 const RECIBOS_DEMONSTRACAO: Entrega[] = [
   {
-    codigoEntrega: 'ENT-2026-001',
-    numeroPedido: '12345',
-    dataEntrega: '2026-09-02',
+    codigoEntrega: 'ENT-2026-012',
+    numeroPedido: '12',
+    dataEntrega: '2026-07-02',
     status: 'entregue',
     escola: {
       codigoEscola: 'ESC-001',
-      nome: 'EM José da Silva',
-      cnpj: '12.345.678/0001-90',
+      nome: 'E.M. Alfeu Rodrigues',
+      cnpj: '',
       endereco: {
-        rua: 'Rua das Flores',
-        numero: 245,
-        bairro: 'Centro',
-        cidade: 'Congonhas',
+        rua: 'Rodovia dos Bandeirantes LMG 808, Km 17,5 — S/N',
+        numero: '',
+        bairro: 'Chácaras das Esmeraldas',
+        cidade: 'Esmeraldas',
         uf: 'MG',
-        cep: '36415-000',
       },
+      horarioFuncionamento: '07h às 12h',
     },
     itens: [
-      { produto: 'Caderno Universitário', quantidade: 50, valor: 10 },
-      { produto: 'Caneta Esferográfica', quantidade: 100, valor: 2 },
-      { produto: 'Lápis de Cor (caixa)', quantidade: 30, valor: 15.5 },
-      { produto: 'Borracha', quantidade: 40, valor: 1.2 },
+      { produto: 'Alho Descascado', unidade: 'KG', quantidade: 1 },
+      { produto: 'Cebola', unidade: 'KG', quantidade: 4 },
+      { produto: 'Cenoura', unidade: 'KG', quantidade: 4 },
+      { produto: 'Batata', unidade: 'KG', quantidade: 4 },
+      { produto: 'Tomate', unidade: 'KG', quantidade: 4 },
+      { produto: 'Batata Doce', unidade: 'KG', quantidade: 2 },
+      { produto: 'Repolho Verde', unidade: 'KG', quantidade: 3 },
+      { produto: 'Ovos Vermelhos', unidade: 'DZ', quantidade: 4 },
+      { produto: 'Maçã', unidade: 'KG', quantidade: 10 },
+      { produto: 'Banana', unidade: 'KG', quantidade: 10 },
+      { produto: 'Laranja', unidade: 'KG', quantidade: 6 },
     ],
-    observacoes: ['Entrega realizada no período da manhã', 'Conferido pela diretora no ato do recebimento'],
-    valorTotal: 1163,
-    responsavelRecebimento: 'Maria Aparecida Santos',
+    observacoes: null,
+    responsavelRecebimento: null,
   },
   {
-    codigoEntrega: 'ENT-2026-002',
-    numeroPedido: '12346',
-    dataEntrega: '2026-09-02',
+    codigoEntrega: 'ENT-2026-013',
+    numeroPedido: '13',
+    dataEntrega: '2026-07-02',
     status: 'entregue',
     escola: {
       codigoEscola: 'ESC-002',
-      nome: 'EM Maria Souza',
-      cnpj: '98.765.432/0001-10',
-      endereco: { rua: 'Avenida Brasil', numero: 1000, cidade: 'Congonhas', uf: 'MG' },
+      nome: 'E.M. Maria Souza',
+      cnpj: '',
+      endereco: { rua: 'Rua Principal, S/N', numero: '', bairro: 'Centro', cidade: 'Esmeraldas', uf: 'MG' },
+      horarioFuncionamento: '07h às 13h',
     },
-    itens: [{ produto: 'Resma de Papel A4', quantidade: 20, valor: 25 }],
+    itens: [
+      { produto: 'Feijão Carioca', unidade: 'KG', quantidade: 20 },
+      { produto: 'Arroz Branco', unidade: 'KG', quantidade: 30 },
+      { produto: 'Ovos Brancos', unidade: 'DZ', quantidade: 6 },
+    ],
     observacoes: null,
-    valorTotal: 500,
-    responsavelRecebimento: 'João Batista Oliveira',
+    responsavelRecebimento: null,
   },
 ];
 
@@ -107,6 +117,13 @@ export function atualizarStatusRecibo(id: string, status: StatusPreparoRecibo): 
   if (indice === -1) return; // recibos de demonstração não têm status persistente alterável
   recibosImportados[indice] = { ...recibosImportados[indice], status };
   salvar();
+}
+
+/** Remove um recibo importado da lista. Recibos de demonstração não são removíveis (voltariam no próximo recarregamento). */
+export function removerRecibo(id: string): void {
+  const antes = recibosImportados.length;
+  recibosImportados = recibosImportados.filter((r) => r.id !== id);
+  if (recibosImportados.length !== antes) salvar();
 }
 
 export interface DadosCorrecaoRecibo {

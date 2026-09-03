@@ -1,87 +1,39 @@
-import { useState, type ReactNode } from 'react';
-import { HashRouter, NavLink, Route, Routes } from 'react-router-dom';
-import { Menu, X } from 'lucide-react';
+import { type ReactNode } from 'react';
+import { HashRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom';
+import { Building2, FileClock, LayoutDashboard, Layers, Search, TrendingUp, UploadCloud } from 'lucide-react';
 import Dashboard from './pages/Dashboard';
 import Consulta from './pages/Consulta';
 import Importacao from './pages/Importacao';
 import Historico from './pages/Historico';
+import DadosEmpresa from './pages/DadosEmpresa';
+import RelatorioSemanal from './pages/RelatorioSemanal';
+import Login from './pages/Login';
 import BatchGenerator from './components/BatchGenerator';
-import Logo from './components/Logo';
-import { EMPRESA } from './services/api';
+import Sidebar, { type LinkSidebar } from './components/Sidebar';
+import { obterSessao } from './services/authService';
 
-const LINKS = [
-  { to: '/', label: 'Dashboard', end: true },
-  { to: '/consulta', label: 'Consultar Entrega', end: false },
-  { to: '/importacao', label: 'Importar Planilha', end: false },
-  { to: '/lote', label: 'Recibos Preparados', end: false },
-  { to: '/historico', label: 'Histórico', end: false },
+const LINKS: LinkSidebar[] = [
+  { to: '/', label: 'Dashboard', icon: LayoutDashboard, end: true },
+  { to: '/consulta', label: 'Consultar Entrega', icon: Search },
+  { to: '/importacao', label: 'Importar Planilha', icon: UploadCloud },
+  { to: '/lote', label: 'Recibos Preparados', icon: Layers },
+  { to: '/historico', label: 'Histórico', icon: FileClock },
+  { to: '/relatorio', label: 'Relatório Semanal', icon: TrendingUp },
+  { to: '/empresa', label: 'Dados da Empresa', icon: Building2 },
 ];
 
-function Layout({ children }: { children: ReactNode }) {
-  const [menuAberto, setMenuAberto] = useState(false);
+function RotaProtegida({ children }: { children: ReactNode }) {
+  const location = useLocation();
+  const sessao = obterSessao();
+
+  if (!sessao) {
+    return <Navigate to="/login" state={{ de: location.pathname }} replace />;
+  }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="no-print sticky top-0 z-10 border-b border-gray-200 bg-white">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3 sm:px-6">
-          <div className="flex items-center gap-2">
-            <Logo className="h-6 w-6" />
-            <span className="text-sm font-semibold text-gray-900">{EMPRESA.nome}</span>
-          </div>
-
-          <nav className="hidden gap-1 sm:flex" aria-label="Navegação principal">
-            {LINKS.map((link) => (
-              <NavLink
-                key={link.to}
-                to={link.to}
-                end={link.end}
-                className={({ isActive }) =>
-                  `rounded-md px-3 py-2 text-sm font-medium transition ${
-                    isActive ? 'bg-brand-light text-brand' : 'text-gray-600 hover:bg-gray-100'
-                  }`
-                }
-              >
-                {link.label}
-              </NavLink>
-            ))}
-          </nav>
-
-          <button
-            type="button"
-            className="text-gray-600 sm:hidden"
-            onClick={() => setMenuAberto((v) => !v)}
-            aria-label={menuAberto ? 'Fechar menu' : 'Abrir menu'}
-            aria-expanded={menuAberto}
-          >
-            {menuAberto ? <X className="h-5 w-5" aria-hidden="true" /> : <Menu className="h-5 w-5" aria-hidden="true" />}
-          </button>
-        </div>
-
-        {menuAberto && (
-          <nav
-            className="flex flex-col gap-1 border-t border-gray-100 px-4 py-2 sm:hidden"
-            aria-label="Navegação principal (mobile)"
-          >
-            {LINKS.map((link) => (
-              <NavLink
-                key={link.to}
-                to={link.to}
-                end={link.end}
-                onClick={() => setMenuAberto(false)}
-                className={({ isActive }) =>
-                  `rounded-md px-3 py-2 text-sm font-medium ${
-                    isActive ? 'bg-brand-light text-brand' : 'text-gray-600 hover:bg-gray-100'
-                  }`
-                }
-              >
-                {link.label}
-              </NavLink>
-            ))}
-          </nav>
-        )}
-      </header>
-
-      <main className="mx-auto max-w-6xl px-4 py-6 sm:px-6">{children}</main>
+    <div className="flex min-h-screen bg-gray-50">
+      <Sidebar links={LINKS} sessao={sessao} />
+      <main className="min-w-0 flex-1 px-4 py-6 sm:px-8">{children}</main>
     </div>
   );
 }
@@ -90,44 +42,61 @@ export default function App() {
   return (
     <HashRouter>
       <Routes>
+        <Route path="/login" element={<Login />} />
         <Route
           path="/"
           element={
-            <Layout>
+            <RotaProtegida>
               <Dashboard />
-            </Layout>
+            </RotaProtegida>
           }
         />
         <Route
           path="/consulta"
           element={
-            <Layout>
+            <RotaProtegida>
               <Consulta />
-            </Layout>
+            </RotaProtegida>
           }
         />
         <Route
           path="/importacao"
           element={
-            <Layout>
+            <RotaProtegida>
               <Importacao />
-            </Layout>
+            </RotaProtegida>
           }
         />
         <Route
           path="/lote"
           element={
-            <Layout>
+            <RotaProtegida>
               <BatchGenerator />
-            </Layout>
+            </RotaProtegida>
           }
         />
         <Route
           path="/historico"
           element={
-            <Layout>
+            <RotaProtegida>
               <Historico />
-            </Layout>
+            </RotaProtegida>
+          }
+        />
+        <Route
+          path="/empresa"
+          element={
+            <RotaProtegida>
+              <DadosEmpresa />
+            </RotaProtegida>
+          }
+        />
+        <Route
+          path="/relatorio"
+          element={
+            <RotaProtegida>
+              <RelatorioSemanal />
+            </RotaProtegida>
           }
         />
       </Routes>
