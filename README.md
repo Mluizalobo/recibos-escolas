@@ -35,9 +35,10 @@ React 19 + TypeScript + Vite + Tailwind CSS v4, React Router, `xlsx`
 
 ## Acesso online
 
-Publicado no GitHub Pages a cada push na branch `main` (workflow em
-`.github/workflows/deploy.yml`):
-**https://mluizalobo.github.io/recibos-escolas/**
+Publicado na Vercel (importado direto deste repositório GitHub, deploy
+automático a cada push na branch `main`). O link fica sob controle da
+Vercel (ex: `recibos-escolas.vercel.app`), sem depender de usuário pessoal
+do GitHub como acontecia no GitHub Pages.
 
 Login de demonstração (ver "Login" abaixo):
 
@@ -46,14 +47,11 @@ Login de demonstração (ver "Login" abaixo):
 | `poliana` | `lider2026` |
 | `admin` | `grupolider` |
 
-Duas coisas existem só por causa do GitHub Pages ser hospedagem estática
-(sem servidor para reescrever rotas):
-
-- `vite.config.ts` define `base: '/recibos-escolas/'` (o site fica numa
-  subpasta, não na raiz do domínio);
-- as rotas usam `HashRouter` em vez de `BrowserRouter` em `src/App.tsx`
-  (por isso os links ficam `/#/consulta`, `/#/lote` etc.) — assim recarregar
-  a página em qualquer rota funciona sem precisar configurar o servidor.
+`vite.config.ts` define `base: '/'` (o site fica na raiz do domínio, como
+todo projeto importado na Vercel). As rotas usam `HashRouter` em vez de
+`BrowserRouter` em `src/App.tsx` (por isso os links ficam `/#/consulta`,
+`/#/lote` etc.) — assim recarregar a página em qualquer rota funciona sem
+precisar configurar reescrita de rotas no servidor.
 
 ## Instalação e execução
 
