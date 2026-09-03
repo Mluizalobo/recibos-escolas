@@ -29,6 +29,21 @@ React 19 + TypeScript + Vite + Tailwind CSS v4, React Router, `xlsx`
 > "unsupported color function"). O fork `html2canvas-pro` corrige isso e é
 > um substituto direto (mesma API).
 
+## Acesso online
+
+Publicado no GitHub Pages a cada push na branch `main` (workflow em
+`.github/workflows/deploy.yml`):
+**https://mluizalobo.github.io/recibos-escolas/**
+
+Duas coisas existem só por causa do GitHub Pages ser hospedagem estática
+(sem servidor para reescrever rotas):
+
+- `vite.config.ts` define `base: '/recibos-escolas/'` (o site fica numa
+  subpasta, não na raiz do domínio);
+- as rotas usam `HashRouter` em vez de `BrowserRouter` em `src/App.tsx`
+  (por isso os links ficam `/#/consulta`, `/#/lote` etc.) — assim recarregar
+  a página em qualquer rota funciona sem precisar configurar o servidor.
+
 ## Instalação e execução
 
 ```bash

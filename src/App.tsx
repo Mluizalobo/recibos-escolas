@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from 'react';
-import { BrowserRouter, NavLink, Route, Routes } from 'react-router-dom';
+import { HashRouter, NavLink, Route, Routes } from 'react-router-dom';
 import { Menu, X } from 'lucide-react';
 import Dashboard from './pages/Dashboard';
 import Consulta from './pages/Consulta';
@@ -88,7 +88,7 @@ function Layout({ children }: { children: ReactNode }) {
 
 export default function App() {
   return (
-    <BrowserRouter>
+    <HashRouter>
       <Routes>
         <Route
           path="/"
@@ -131,6 +131,6 @@ export default function App() {
           }
         />
       </Routes>
-    </BrowserRouter>
+    </HashRouter>
   );
 }
