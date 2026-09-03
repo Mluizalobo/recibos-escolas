@@ -79,9 +79,18 @@ export default function ReciboTemplate({ empresa, dados }: ReciboTemplateProps) 
       : [];
 
   return (
+    // Página A4 real (210 × 297mm), não apenas "parecida": mesmas dimensões e
+    // padding são usados na tela, na impressão (@page margin:0 em index.css) e
+    // na captura para PDF, então os três resultados são idênticos entre si.
     <div
-      className="mx-auto w-full max-w-[210mm] bg-white p-8 text-[13px] leading-relaxed text-gray-900 print:p-0 print:shadow-none"
-      style={{ fontFamily: 'Arial, Helvetica, sans-serif' }}
+      className="mx-auto bg-white text-[13px] leading-relaxed text-gray-900"
+      style={{
+        width: '210mm',
+        minHeight: '297mm',
+        padding: '12mm',
+        boxSizing: 'border-box',
+        fontFamily: 'Arial, Helvetica, sans-serif',
+      }}
     >
       <header className="flex items-start justify-between border-b-2 border-gray-800 pb-4">
         <div className="flex items-start gap-3">

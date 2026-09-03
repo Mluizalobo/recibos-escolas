@@ -25,17 +25,22 @@ body,
 
 body {
   margin: 0;
-  background: var(--color-bg);
-  color: var(--color-text);
+  background: #f6f7f9;
+  color: #1c2129;
   font-family: 'Segoe UI', system-ui, -apple-system, Roboto, sans-serif;
   -webkit-font-smoothing: antialiased;
 }
 
-/* Impressão: apenas o recibo deve aparecer na página impressa */
+/*
+ * Impressão: apenas o recibo (#print-area) aparece na página impressa, numa
+ * folha A4 sem margem do navegador — a margem visual vem do padding de 12mm
+ * do próprio ReciboTemplate (o mesmo elemento usado na tela e capturado para
+ * o PDF), então os três resultados batem entre si.
+ */
 @media print {
   @page {
     size: A4;
-    margin: 12mm;
+    margin: 0;
   }
 
   body * {
@@ -50,9 +55,8 @@ body {
   #print-area {
     position: absolute;
     inset: 0;
-    width: 100%;
+    width: 210mm;
     margin: 0;
-    padding: 0;
   }
 
   .no-print {

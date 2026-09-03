@@ -74,9 +74,16 @@ export default function ReciboPreview({ empresa, dados, nomeArquivo, onVoltar }:
         </p>
       )}
 
+      {/*
+        A sombra fica num wrapper FORA de #print-area de propósito: é só
+        decoração de tela. O PDF captura exatamente #print-area, então a
+        imagem gerada não deve levar sombra — só o papel A4 em si.
+      */}
       <div className="overflow-x-auto rounded-lg border border-gray-200 bg-gray-100 p-4 print:border-0 print:bg-white print:p-0">
-        <div id="print-area" ref={reciboRef} className="shadow-sm print:shadow-none">
-          <ReciboTemplate empresa={empresa} dados={dados} />
+        <div className="mx-auto w-fit shadow-md print:shadow-none">
+          <div id="print-area" ref={reciboRef}>
+            <ReciboTemplate empresa={empresa} dados={dados} />
+          </div>
         </div>
       </div>
     </div>
