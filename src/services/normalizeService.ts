@@ -27,6 +27,19 @@ function limparEspacos(valor: string): string {
   return valor.replace(/\s+/g, ' ').trim();
 }
 
+/**
+ * Acrescenta uma observação visível no próprio recibo (impresso/PDF), sem
+ * repetir a mesma mensagem. Usada sempre que falta um dado (horário,
+ * endereço, item etc.) — a regra do sistema é nunca bloquear a geração do
+ * recibo por dado ausente, e sim gerar com a ressalva anotada nele.
+ */
+function adicionarObservacao(entrega: Entrega, mensagem: string): void {
+  const atuais = entrega.observacoes ?? [];
+  if (!atuais.includes(mensagem)) {
+    entrega.observacoes = [...atuais, mensagem];
+  }
+}
+
 // =====================================================================
 // Formato "tabela": uma linha por item, com colunas como Escola/Produto/
 // Quantidade — o formato mais simples possível de planilha.
@@ -228,6 +241,16 @@ function normalizarTabela(linhas: PlanilhaLinha[]): ResultadoImportacao {
           mensagem: `Endereço não informado para "${nomeEscola}".`,
           severidade: 'aviso',
         });
+        adicionarObservacao(grupo.entrega, 'Endereço não informado nesta planilha.');
+      }
+
+      if (!escola.horarioFuncionamento) {
+        grupo.problemas.push({
+          campo: 'horarioFuncionamento',
+          mensagem: `Horário de funcionamento não informado para "${nomeEscola}".`,
+          severidade: 'aviso',
+        });
+        adicionarObservacao(grupo.entrega, 'Horário de funcionamento não informado nesta planilha.');
       }
     }
 
@@ -259,6 +282,10 @@ function normalizarTabela(linhas: PlanilhaLinha[]): ResultadoImportacao {
         mensagem: `Linha ${numeroLinha}: produto ou quantidade ausente — item não incluído no recibo.`,
         severidade: 'aviso',
       });
+      adicionarObservacao(
+        grupo.entrega,
+        'Um ou mais itens da planilha não puderam ser identificados (produto ou quantidade ausente) — confira a planilha original.',
+      );
     }
 
     const observacao = comoTexto(linha.observacao);
@@ -271,16 +298,18 @@ function normalizarTabela(linhas: PlanilhaLinha[]): ResultadoImportacao {
     if (grupo.entrega.itens.length === 0) {
       grupo.problemas.push({
         mensagem: `Nenhum item válido encontrado para "${grupo.entrega.escola.nome}".`,
-        severidade: 'erro',
+        severidade: 'aviso',
       });
+      adicionarObservacao(
+        grupo.entrega,
+        'Nenhum item válido encontrado nesta planilha para esta escola — confira antes de entregar.',
+      );
     }
 
-    const temErro = grupo.problemas.some((p) => p.severidade === 'erro');
-    const status: StatusPreparoRecibo = temErro
-      ? 'com_erro'
-      : grupo.problemas.length > 0
-        ? 'pendente'
-        : 'pronto';
+    // Dado ausente nunca bloqueia a geração do recibo: fica marcado como
+    // "pendente" (com a observação impressa nele) para conferência, mas o
+    // usuário sempre consegue gerar o PDF.
+    const status: StatusPreparoRecibo = grupo.problemas.length > 0 ? 'pendente' : 'pronto';
 
     return {
       id: `importado-${chave}`,
@@ -441,6 +470,9 @@ function normalizarMatriz(grade: PlanilhaGrade, blocos: BlocoMatriz[]): Resultad
         }
       }
 
+      // Dado ausente nunca bloqueia a geração do recibo: cada situação vira
+      // um aviso (para conferência) e uma observação impressa no próprio
+      // recibo — o recibo é sempre gerado, nunca fica travado como "erro".
       const problemas: ProblemaRecibo[] = [
         {
           campo: 'endereco',
@@ -448,6 +480,16 @@ function normalizarMatriz(grade: PlanilhaGrade, blocos: BlocoMatriz[]): Resultad
           severidade: 'aviso',
         },
       ];
+      const observacoes: string[] = ['Endereço não informado nesta planilha.'];
+
+      if (!horarioFuncionamento) {
+        problemas.push({
+          campo: 'horarioFuncionamento',
+          mensagem: `Horário de funcionamento não informado para "${nome}".`,
+          severidade: 'aviso',
+        });
+        observacoes.push('Horário de funcionamento não informado nesta planilha.');
+      }
 
       if (numeroLista) {
         problemas.push({
@@ -455,13 +497,15 @@ function normalizarMatriz(grade: PlanilhaGrade, blocos: BlocoMatriz[]): Resultad
           mensagem: `Número do pedido (${numeroLista}) inferido pela posição na lista da planilha — confirme antes de gerar.`,
           severidade: 'aviso',
         });
+        observacoes.push(`Número do pedido (${numeroLista}) inferido pela posição na lista — confirme.`);
       }
 
       if (itens.length === 0) {
         problemas.push({
           mensagem: `Nenhum item com quantidade informada para "${nome}".`,
-          severidade: 'erro',
+          severidade: 'aviso',
         });
+        observacoes.push('Nenhum item com quantidade informada nesta planilha — confira antes de entregar.');
       }
 
       const entrega: Entrega = {
@@ -477,17 +521,14 @@ function normalizarMatriz(grade: PlanilhaGrade, blocos: BlocoMatriz[]): Resultad
           horarioFuncionamento,
         },
         itens,
-        observacoes: null,
+        observacoes,
         responsavelRecebimento: null,
       };
-
-      const temErro = problemas.some((p) => p.severidade === 'erro');
-      const status: StatusPreparoRecibo = temErro ? 'com_erro' : 'pendente';
 
       recibos.push({
         id: `importado-matriz-${bloco.linhaEntrega}-${i}`,
         entrega,
-        status,
+        status: 'pendente',
         problemas,
         origem: 'importacao',
       });

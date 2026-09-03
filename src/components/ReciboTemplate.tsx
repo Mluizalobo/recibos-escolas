@@ -84,6 +84,11 @@ export default function ReciboTemplate({ empresa, dados }: ReciboTemplateProps) 
   ]);
   const responsavel = texto(primeiro(dados, [['responsavelRecebimento'], ['responsavel']]));
 
+  const observacoesBrutas = primeiro(dados, [['observacoes']]);
+  const observacoes = Array.isArray(observacoesBrutas)
+    ? (observacoesBrutas as JsonValue[]).map(texto).filter((valor): valor is string => !!valor)
+    : [];
+
   const itensBrutos = primeiro(dados, [['itens'], ['itensRecebidos']]);
   const itens = extrairItens(itensBrutos);
   const linhasEmBranco = Math.max(0, MINIMO_LINHAS_TABELA - itens.length);
@@ -124,6 +129,14 @@ export default function ReciboTemplate({ empresa, dados }: ReciboTemplateProps) 
             </div>
           )}
         </div>
+
+        {observacoes.length > 0 && (
+          <div className="border-b border-black bg-amber-50 px-3 py-1.5 text-[10px] italic text-gray-800">
+            {observacoes.map((obs, index) => (
+              <p key={index}>Observação: {obs}</p>
+            ))}
+          </div>
+        )}
 
         <table className="w-full border-collapse text-[11px]">
           <colgroup>
