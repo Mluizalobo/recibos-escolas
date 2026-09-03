@@ -1,5 +1,7 @@
 import jsPDF from 'jspdf';
-import html2canvas from 'html2canvas';
+// html2canvas-pro (não o html2canvas original) porque o Tailwind v4 gera cores em oklch(),
+// que a versão original da lib não sabe interpretar ao ler os estilos computados.
+import html2canvas from 'html2canvas-pro';
 import { sanitizeFileName } from '../utils/formatters';
 
 const A4_WIDTH_MM = 210;

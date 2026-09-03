@@ -58,7 +58,7 @@ function ArrayRenderer({ items }: { items: JsonValue[] }) {
         {(items as JsonPrimitive[]).map((item, index) => (
           <span
             key={index}
-            className="inline-flex items-center rounded-full bg-blue-50 px-3 py-1 text-xs font-medium text-blue-700"
+            className="inline-flex items-center rounded-full bg-brand-light px-3 py-1 text-xs font-medium text-brand"
           >
             {formatPrimitiveValue(item)}
           </span>

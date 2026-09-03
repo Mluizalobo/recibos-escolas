@@ -99,7 +99,7 @@ export default function Consulta() {
                 setAutoImprimir(false);
                 setMostrarRecibo(true);
               }}
-              className="inline-flex items-center gap-2 rounded-md bg-blue-700 px-4 py-2 text-sm font-medium text-white hover:bg-blue-800"
+              className="inline-flex items-center gap-2 rounded-md bg-brand px-4 py-2 text-sm font-medium text-white hover:bg-brand-dark"
             >
               <ReceiptText className="h-4 w-4" aria-hidden="true" /> Gerar Recibo
             </button>

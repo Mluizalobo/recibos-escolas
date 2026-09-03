@@ -79,12 +79,64 @@ export interface Empresa {
   logoUrl?: string;
 }
 
+/** Registro de um recibo já gerado nesta sessão (usado no "Gerados recentemente" do Dashboard). */
 export interface HistoricoRecibo {
   id: string;
   escolaNome: string;
   dataEntrega: string;
   numeroPedido: string;
   geradoEm: string;
+}
+
+/**
+ * Situação de um recibo dentro do pipeline importação → conferência → geração.
+ * Não confundir com StatusEntrega (situação comercial da entrega em si).
+ */
+export type StatusPreparoRecibo = 'pendente' | 'pronto' | 'com_erro' | 'gerado' | 'impresso';
+
+export const STATUS_PREPARO_LABEL: Record<StatusPreparoRecibo, string> = {
+  pendente: 'Pendente',
+  pronto: 'Pronto',
+  com_erro: 'Com erro',
+  gerado: 'Gerado',
+  impresso: 'Impresso',
+};
+
+/** Um problema encontrado ao normalizar/validar a planilha, associado a um recibo específico. */
+export interface ProblemaRecibo {
+  linha?: number;
+  campo?: string;
+  mensagem: string;
+  /** "erro" bloqueia a geração automática (ex: nenhum item válido); "aviso" só pede conferência. */
+  severidade: 'erro' | 'aviso';
+}
+
+/**
+ * Um recibo "preparado" pelo sistema a partir da planilha (ou de um mock de
+ * demonstração), pronto para ser conferido e gerado pelo usuário — que atua
+ * como conferente, não como digitador.
+ */
+export interface ReciboPreparado {
+  id: string;
+  entrega: Entrega;
+  status: StatusPreparoRecibo;
+  problemas: ProblemaRecibo[];
+  origem: 'importacao' | 'mock';
+}
+
+/** Um registro do histórico de importações semanais da planilha. */
+export interface ImportacaoHistorico {
+  id: string;
+  nomeArquivo: string;
+  tamanhoBytes: number;
+  dataImportacao: string;
+  totalLinhas: number;
+  totalEscolas: number;
+  totalRecibos: number;
+  totalComErro: number;
+  totalDuplicados: number;
+  status: 'concluida' | 'com_erros';
+  hashConteudo: string;
 }
 
 /** Resultado padronizado da camada de serviço, usado pela UI para tratar erros. */
@@ -102,11 +154,17 @@ export class ApiError extends Error {
 /** Linha bruta de planilha, antes da normalização/agrupamento. */
 export type PlanilhaLinha = Record<string, JsonValue>;
 
+/** Resultado de normalizeSpreadsheetData(): recibos já organizados por escola/entrega, com status individual. */
 export interface ResultadoImportacao {
-  entregas: Entrega[];
+  recibos: ReciboPreparado[];
   totalLinhas: number;
-  totalEntregas: number;
-  erros: string[];
+  totalEscolas: number;
+  totalRecibosPreparados: number;
+  totalComErro: number;
+  totalDuplicados: number;
+  /** Avisos gerais que não puderam ser associados a um recibo específico (ex: linha sem nenhum identificador). */
+  avisos: string[];
+  hashConteudo: string;
 }
 
 export type ModoLote = 'individual' | 'unico';

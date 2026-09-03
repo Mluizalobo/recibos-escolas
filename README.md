@@ -1,22 +1,33 @@
 # Recibos de Entrega — Distribuidora Alvorada
 
-Aplicação web para substituir o processo manual de gerar recibos de entrega
-por escola (planilha impressa → cópia manual para o Word → impressão
-individual). O fluxo aqui é: **consultar a escola/pedido → conferir os dados
-→ gerar o recibo → visualizar/imprimir o PDF**.
+Aplicação web que substitui o processo manual de gerar recibos de entrega
+por escola a partir da planilha semanal (planilha → copiar dados no Word →
+imprimir um por um). O fluxo agora é:
 
-O ponto central do projeto é que a interface é **orientada pelos dados**: o
-componente `DynamicDataRenderer` percorre qualquer JSON recursivamente e
-decide como exibir cada campo (texto, tabela, cards, tags) sem depender de
-nomes de campo fixos. Isso permite que escolas com estruturas de dados
-diferentes entre si sejam exibidas corretamente, e que campos novos apareçam
-automaticamente sem precisar alterar código.
+**Importar a planilha semanal → o sistema organiza e valida por escola →
+usuário confere e corrige o que precisar → gera os PDFs.**
+
+O usuário atua como **conferente**, não como digitador: os dados de cada
+recibo vêm prontos da planilha, e a interface só pede intervenção manual nos
+casos com pendência (CNPJ ausente, endereço ausente, item não identificado).
+
+O sistema também mantém uma tela de consulta avulsa (`Consultar Entrega`),
+cujo destaque é o `DynamicDataRenderer`: um componente que percorre qualquer
+JSON recursivamente e decide como exibir cada campo (texto, tabela, cards,
+tags) sem depender de nomes de campo fixos — útil enquanto o formato real da
+planilha ainda pode mudar.
 
 ## Stack
 
 React 19 + TypeScript + Vite + Tailwind CSS v4, React Router, `xlsx`
-(leitura de planilhas), `jspdf` + `html2canvas` (geração de PDF) e
+(leitura de planilhas), `jspdf` + `html2canvas-pro` (geração de PDF) e
 `lucide-react` (ícones).
+
+> **Por que `html2canvas-pro` e não `html2canvas`?** O Tailwind v4 gera cores
+> no formato `oklch()`, que a biblioteca `html2canvas` original não sabe
+> interpretar ao ler estilos computados (a geração de PDF falha com
+> "unsupported color function"). O fork `html2canvas-pro` corrige isso e é
+> um substituto direto (mesma API).
 
 ## Instalação e execução
 
@@ -28,32 +39,88 @@ npm run preview   # serve o build de produção localmente
 ```
 
 Não é necessário nenhum backend ou variável de ambiente para rodar o
-projeto: os dados vêm de mocks em memória (ver abaixo).
+projeto. Os dados de demonstração ficam em memória; o que é importado via
+planilha persiste no `localStorage` do navegador (recibos preparados e
+histórico de importações), então sobrevive a um recarregamento da página.
+
+## Fluxo principal (importação semanal)
+
+```
+Planilha (.xlsx/.xls)
+      │  excelService.ts        → lê o arquivo, calcula hash do conteúdo
+      ▼
+normalizeService.ts             → mapeia colunas, agrupa linhas por escola/
+      │                           entrega, valida e classifica cada recibo
+      ▼
+recibosStore.ts                 → guarda os recibos preparados (localStorage)
+      │
+      ├─→ api.ts                → disponibiliza para a busca avulsa (Consultar Entrega)
+      └─→ historyService.ts     → registra a importação no histórico semanal
+      ▼
+BatchGenerator (tela "Recibos Preparados")
+      │  busca / filtro por status / corrigir pendências
+      ▼
+pdfService.ts                   → gera PDF individual ou um único PDF em lote
+```
+
+Cada recibo preparado tem um status: **Pendente** (tem alguma pendência não
+bloqueante, ex. CNPJ ausente), **Pronto** (sem pendências), **Com erro**
+(bloqueante, ex. nenhum item identificado para a escola), **Gerado** e
+**Impresso**. Pendências não bloqueantes podem ser corrigidas direto na tela
+(ícone de lápis); pendências de item ausente exigem corrigir a planilha de
+origem, já que a interface não deve inventar dados que não vieram dela.
+
+Reenviar uma planilha já processada (mesmo conteúdo) mostra um aviso antes
+de reprocessar, para evitar recibos duplicados.
 
 ## Estrutura de pastas
 
 ```
 src/
-├── components/     # UI reutilizável (renderer dinâmico, formulário, recibo, lote...)
-├── pages/          # Dashboard, Consulta, Importacao
-├── services/       # api.ts, excelService.ts, pdfService.ts, mockData.ts
-├── utils/          # formatters, labelFormatter, validators
+├── components/     # UI reutilizável (renderer dinâmico, formulário, recibo,
+│                     lote/status, modal de correção, logo...)
+├── pages/          # Dashboard, Consulta, Importacao, Historico
+├── services/
+│   ├── api.ts              # camada de consulta avulsa (troque aqui por uma API real)
+│   ├── excelService.ts     # leitura do arquivo + hash do conteúdo
+│   ├── normalizeService.ts # normalizeSpreadsheetData(): mapeia, agrupa, valida
+│   ├── recibosStore.ts     # estado dos recibos preparados (+ correção manual)
+│   ├── historyService.ts   # histórico de importações semanais
+│   ├── pdfService.ts       # geração de PDF (individual e em lote)
+│   └── mockData.ts         # dados de demonstração para a Consulta
+├── utils/          # formatters, labelFormatter, validators, hash
 ├── types/          # tipos genéricos (JsonValue/JsonObject) e de domínio
 ├── hooks/          # useConsulta
 └── App.tsx         # rotas e layout
 ```
 
-Regra seguida no projeto inteiro: **UI, chamadas de dados e geração de PDF
-nunca ficam misturadas no mesmo arquivo** — os componentes chamam funções de
-`services/`, nunca implementam a lógica ali dentro.
+Regra seguida no projeto inteiro: **UI, leitura de planilha, normalização e
+geração de PDF nunca ficam misturadas no mesmo arquivo.**
+
+## Identidade visual
+
+Ainda não recebemos o logotipo e a paleta oficiais da empresa, então o
+sistema usa um placeholder configurado de forma centralizada — trocar a
+marca depois é mexer em **dois lugares**, não em cada componente:
+
+- **Cores**: tokens `--color-brand`, `--color-brand-dark` e
+  `--color-brand-light` no bloco `@theme` de `src/index.css`. Todos os
+  botões primários, links e destaques usam as classes `bg-brand`,
+  `text-brand` etc. geradas a partir deles.
+- **Logo**: `src/components/Logo.tsx` usa `EMPRESA.logoUrl`
+  (`src/services/mockData.ts`) quando definido; até lá, mostra um ícone
+  genérico na cor da marca. É o mesmo componente usado no cabeçalho do
+  sistema e no cabeçalho do recibo.
+
+Cores de status (verde/âmbar/vermelho/roxo nos badges de situação da
+entrega e do recibo) são propositalmente independentes da marca — não devem
+mudar se a cor principal mudar.
 
 ## Onde configurar a fonte de dados
 
-Hoje os dados vêm de `src/services/mockData.ts` (3 escolas com estruturas de
-JSON propositalmente diferentes, para provar que a renderização é genérica).
-`src/services/api.ts` expõe três funções que a UI consome —
-`consultarEntrega`, `listarTodasEntregas` e `obterResumoDashboard` — e são o
-**único ponto de troca** quando a fonte de dados real existir:
+`src/services/api.ts` expõe as funções que a tela de Consulta usa —
+`consultarEntrega`, `listarTodasEntregas`, `obterResumoDashboard` — e é o
+**único ponto de troca** quando a fonte de dados real (API/banco) existir:
 
 ```ts
 // src/services/api.ts — trocar o corpo por uma chamada HTTP real:
@@ -64,43 +131,40 @@ export async function consultarEntrega(tipo: SearchType, valor: string) {
 }
 ```
 
-Nenhum componente de página ou de UI precisa mudar quando isso acontecer.
-
-Planilhas importadas em **Importar Planilha** já ficam disponíveis para
-consulta na mesma sessão (`registrarEntregasImportadas`), simulando o
-comportamento que uma API real teria após persistir os dados.
+Para a importação de planilha, o ponto de troca equivalente é
+`recibosStore.ts` (hoje guarda em `localStorage`; no futuro, os mesmos
+pontos onde ele é chamado por `Importacao.tsx` e `BatchGenerator.tsx`
+passariam a chamar uma API). Nenhum componente de página precisa mudar.
 
 ## Onde alterar o modelo do recibo
 
 O layout vive isolado em `src/components/ReciboTemplate.tsx`. Ele **não
 assume um schema fixo**: extrai cada campo (nome da escola, CNPJ, endereço,
 pedido, itens, observações, responsável) tentando múltiplos caminhos
-possíveis dentro do JSON, então continua funcionando mesmo que a estrutura
-mude. Quando o modelo Word oficial da empresa for definido, ajuste apenas
-esse componente (cabeçalho, campos exibidos, texto de assinatura, posição do
-carimbo) — `ReciboPreview.tsx` (preview + ações) e `pdfService.ts` (geração
-do PDF/paginação) não precisam mudar.
+possíveis dentro do JSON. Quando o modelo Word oficial da empresa for
+definido, ajuste esse componente (cabeçalho, campos exibidos, texto de
+assinatura, posição do carimbo) — `ReciboPreview.tsx` e `pdfService.ts` não
+precisam mudar.
 
 ## Identificadores de busca
 
 Novos tipos de identificador (ex: "turma", "regional") são adicionados em um
-único lugar, `SEARCH_TYPES` em `src/types/index.ts` — o formulário de busca
-lê essa lista automaticamente.
+único lugar, `SEARCH_TYPES` em `src/types/index.ts`.
 
-## Geração em lote
+## Limitações conhecidas
 
-Em **Gerar em Lote**, cada escola marcada pode virar um PDF individual ou
-todas podem ser combinadas em um único PDF (uma escolha, não as duas ao
-mesmo tempo). A renderização de cada recibo acontece fora da tela (mas com
-layout real) para ser capturada via `html2canvas` e paginada em A4.
-
-## Limitação conhecida
-
-O bundle de produção passa de 500 kB porque `xlsx`, `jspdf` e `html2canvas`
-são carregados de início. Para produção, vale trocar os `import` estáticos
-dessas libs por `import()` dinâmico nas páginas que as usam (Importação,
-Consulta e BatchGenerator) — não foi feito aqui para manter o código mais
-simples de acompanhar nesta primeira versão.
+- O bundle de produção passa de 500 kB porque `xlsx`, `jspdf` e
+  `html2canvas-pro` são carregados de início. Vale trocar os `import`
+  estáticos dessas libs por `import()` dinâmico nas páginas que as usam.
+- O pacote `xlsx` (SheetJS) tem vulnerabilidades conhecidas sem correção
+  disponível (`npm audit`). O risco é baixo aqui porque o arquivo processado
+  é a planilha interna da própria empresa, não um upload de terceiros — mas
+  vale reavaliar se o fluxo de importação for aberto a outras origens.
+- O histórico de importações e os recibos preparados ficam no `localStorage`
+  do navegador — trocar de computador ou limpar dados do site reinicia esse
+  estado. Isso é esperado nesta fase (sem backend); a arquitetura
+  (`historyService.ts`, `recibosStore.ts`) já está isolada para migrar para
+  uma API/banco depois sem tocar nas telas.
 
 ## Perguntas que faltam para conectar a fonte de dados definitiva
 
@@ -108,24 +172,28 @@ simples de acompanhar nesta primeira versão.
 2. Existe mais de uma aba, ou os dados sempre vêm na primeira?
 3. Qual é o identificador usado para localizar a escola no dia a dia:
    código, CNPJ, nome, número do pedido?
-4. Uma escola pode ter mais de uma linha na planilha (um produto por linha)?
-5. Como identificar que várias linhas pertencem à mesma entrega (mesmo
-   pedido, mesmo código de entrega, ou outra regra)?
-6. Existe numeração sequencial própria para os recibos?
-7. Qual é o modelo Word atual usado para o recibo? (`ReciboTemplate.tsx` foi
-   feito para ser adaptado assim que ele for enviado)
-8. Existe logotipo da empresa em arquivo separado (para usar no cabeçalho)?
-9. Quais campos são obrigatórios no recibo final?
-10. O responsável pela escola assina fisicamente o papel impresso, ou a
-    assinatura também pode ser digital?
-11. O recibo precisa de espaço reservado para carimbo? (já existe um
+4. Como identificar que várias linhas pertencem à mesma entrega (mesmo
+   pedido, mesmo código de entrega, ou outra regra)? Hoje a prioridade é
+   código da entrega → pedido → CNPJ+data → nome da escola.
+5. Existe numeração sequencial própria para os recibos?
+6. Qual é o modelo Word atual usado para o recibo?
+7. Existe logotipo da empresa em arquivo separado (para usar no cabeçalho)?
+8. Quais campos são obrigatórios no recibo final, e quais tornam um recibo
+   bloqueante ("com erro") se estiverem ausentes?
+9. O responsável pela escola assina fisicamente o papel impresso, ou a
+   assinatura também pode ser digital?
+10. O recibo precisa de espaço reservado para carimbo? (já existe um
     placeholder pronto no template)
-12. A empresa precisa manter histórico dos recibos já gerados? Isso definiria
-    se vale a pena adicionar um banco de dados já na próxima fase.
+11. Qual é a paleta de cores e a tipografia oficiais da empresa?
+12. A planilha semanal costuma repetir escolas de semanas anteriores? Isso
+    ajudaria a refinar a regra de detecção de duplicidade.
 
 ## O que já funciona ponta a ponta
 
-Importar planilha → normalizar/agrupar linhas em entregas → consultar por
+Importar planilha → normalizar/agrupar linhas por escola/entrega → validar e
+classificar cada recibo (pronto/pendente/com erro) → avisar se a planilha já
+foi processada antes → conferir e corrigir pendências → buscar por
 nome/código/CNPJ/pedido/código de entrega → ver os dados renderizados
-dinamicamente → gerar recibo → visualizar → gerar PDF ou imprimir — tanto
-para uma escola por vez quanto em lote.
+dinamicamente → gerar recibo → visualizar → gerar PDF (individual ou em
+lote, um por escola ou um único arquivo) ou imprimir → consultar o histórico
+de importações semanais.

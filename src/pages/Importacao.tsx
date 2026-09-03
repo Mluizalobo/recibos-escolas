@@ -1,71 +1,159 @@
-import { useRef, useState } from 'react';
+import { useRef, useState, type DragEvent } from 'react';
 import { Link } from 'react-router-dom';
-import { AlertCircle, CheckCircle2, FileSpreadsheet, UploadCloud } from 'lucide-react';
+import { AlertCircle, AlertTriangle, CheckCircle2, FileSpreadsheet, UploadCloud } from 'lucide-react';
 import { validarArquivoPlanilha } from '../utils/validators';
-import { importarPlanilha } from '../services/excelService';
+import { calcularHashPlanilha, lerArquivoExcel } from '../services/excelService';
+import { normalizeSpreadsheetData } from '../services/normalizeService';
 import { registrarEntregasImportadas } from '../services/api';
-import type { ResultadoImportacao } from '../types';
+import { definirRecibosImportados } from '../services/recibosStore';
+import { encontrarImportacaoDuplicada, registrarImportacao } from '../services/historyService';
+import type { ImportacaoHistorico, PlanilhaLinha, ResultadoImportacao } from '../types';
 
+type StatusProcessamento = 'selecionado' | 'processando' | 'concluido' | 'erro';
+
+const STATUS_LABEL: Record<StatusProcessamento, string> = {
+  selecionado: 'Selecionado',
+  processando: 'Processando…',
+  concluido: 'Concluído',
+  erro: 'Erro no processamento',
+};
+
+const STATUS_ESTILO: Record<StatusProcessamento, string> = {
+  selecionado: 'bg-gray-100 text-gray-600',
+  processando: 'bg-blue-50 text-blue-700',
+  concluido: 'bg-green-100 text-green-700',
+  erro: 'bg-red-100 text-red-700',
+};
+
+function formatarTamanho(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+interface DuplicataPendente {
+  linhas: PlanilhaLinha[];
+  hash: string;
+  duplicata: ImportacaoHistorico;
+}
+
+/**
+ * Tela que substitui o processo manual "planilha semanal → copiar para o
+ * Word → imprimir": o usuário só importa o arquivo, confere o resumo e os
+ * recibos já saem preparados (ver src/services/normalizeService.ts).
+ */
 export default function Importacao() {
   const inputRef = useRef<HTMLInputElement>(null);
-  const [arquivo, setArquivo] = useState<File | null>(null);
-  const [erroArquivo, setErroArquivo] = useState<string | null>(null);
-  const [processando, setProcessando] = useState(false);
-  const [resultado, setResultado] = useState<ResultadoImportacao | null>(null);
-  const [erroProcessamento, setErroProcessamento] = useState<string | null>(null);
 
-  function handleSelecionarArquivo(file: File | undefined) {
+  const [arquivo, setArquivo] = useState<File | null>(null);
+  const [selecionadoEm, setSelecionadoEm] = useState<Date | null>(null);
+  const [statusProcessamento, setStatusProcessamento] = useState<StatusProcessamento | null>(null);
+  const [arrastando, setArrastando] = useState(false);
+  const [erroArquivo, setErroArquivo] = useState<string | null>(null);
+  const [erroProcessamento, setErroProcessamento] = useState<string | null>(null);
+  const [resultado, setResultado] = useState<ResultadoImportacao | null>(null);
+  const [duplicataPendente, setDuplicataPendente] = useState<DuplicataPendente | null>(null);
+
+  function selecionarArquivo(file: File | undefined) {
     setResultado(null);
     setErroProcessamento(null);
+    setDuplicataPendente(null);
 
-    if (!file) {
-      setArquivo(null);
-      return;
-    }
+    if (!file) return;
 
     const validacao = validarArquivoPlanilha(file);
     if (!validacao.valid) {
       setErroArquivo(validacao.message ?? 'Arquivo inválido.');
       setArquivo(null);
+      setStatusProcessamento(null);
       if (inputRef.current) inputRef.current.value = '';
       return;
     }
 
     setErroArquivo(null);
     setArquivo(file);
+    setSelecionadoEm(new Date());
+    setStatusProcessamento('selecionado');
   }
 
-  async function handleProcessar() {
-    if (!arquivo || processando) return;
-    setProcessando(true);
+  function handleDrop(event: DragEvent<HTMLLabelElement>) {
+    event.preventDefault();
+    setArrastando(false);
+    selecionarArquivo(event.dataTransfer.files?.[0]);
+  }
+
+  async function processar(forcado?: { linhas: PlanilhaLinha[]; hash: string }) {
+    if (!arquivo) return;
+    setStatusProcessamento('processando');
     setErroProcessamento(null);
+
     try {
-      const resultadoImportacao = await importarPlanilha(arquivo);
-      setResultado(resultadoImportacao);
-      registrarEntregasImportadas(resultadoImportacao.entregas);
+      const linhas = forcado?.linhas ?? (await lerArquivoExcel(arquivo));
+      const hash = forcado?.hash ?? calcularHashPlanilha(linhas);
+
+      if (!forcado) {
+        const duplicata = encontrarImportacaoDuplicada(hash);
+        if (duplicata) {
+          setDuplicataPendente({ linhas, hash, duplicata });
+          setStatusProcessamento('selecionado');
+          return;
+        }
+      }
+
+      const resultadoNormalizado = normalizeSpreadsheetData(linhas);
+
+      definirRecibosImportados(resultadoNormalizado.recibos);
+      registrarEntregasImportadas(resultadoNormalizado.recibos.map((r) => r.entrega));
+      registrarImportacao({
+        id: `imp-${Date.now()}`,
+        nomeArquivo: arquivo.name,
+        tamanhoBytes: arquivo.size,
+        dataImportacao: new Date().toISOString(),
+        totalLinhas: resultadoNormalizado.totalLinhas,
+        totalEscolas: resultadoNormalizado.totalEscolas,
+        totalRecibos: resultadoNormalizado.totalRecibosPreparados,
+        totalComErro: resultadoNormalizado.totalComErro,
+        totalDuplicados: resultadoNormalizado.totalDuplicados,
+        status: resultadoNormalizado.totalComErro > 0 ? 'com_erros' : 'concluida',
+        hashConteudo: hash,
+      });
+
+      setResultado(resultadoNormalizado);
+      setStatusProcessamento('concluido');
+      setDuplicataPendente(null);
     } catch (err) {
       setErroProcessamento(err instanceof Error ? err.message : 'Não foi possível processar a planilha.');
-    } finally {
-      setProcessando(false);
+      setStatusProcessamento('erro');
     }
   }
+
+  const processando = statusProcessamento === 'processando';
 
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-xl font-semibold text-gray-900">Importar Planilha</h1>
         <p className="text-sm text-gray-500">
-          Envie o arquivo .xlsx ou .xls com os dados das entregas para disponibilizá-los na consulta.
+          Envie a planilha semanal de entregas (.xlsx ou .xls). O sistema lê, organiza por escola e já deixa os
+          recibos preparados para conferência — sem digitação manual.
         </p>
       </div>
 
       <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
         <label
           htmlFor="arquivo-planilha"
-          className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-gray-300 px-6 py-10 text-center transition hover:border-blue-400 hover:bg-blue-50/40"
+          onDragOver={(e) => {
+            e.preventDefault();
+            setArrastando(true);
+          }}
+          onDragLeave={() => setArrastando(false)}
+          onDrop={handleDrop}
+          className={`flex cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed px-6 py-10 text-center transition ${
+            arrastando ? 'border-brand bg-brand-light' : 'border-gray-300 hover:border-brand hover:bg-brand-light/40'
+          }`}
         >
           <UploadCloud className="h-8 w-8 text-gray-400" aria-hidden="true" />
-          <span className="text-sm font-medium text-gray-700">Clique para selecionar a planilha</span>
+          <span className="text-sm font-medium text-gray-700">Clique para selecionar ou arraste a planilha aqui</span>
           <span className="text-xs text-gray-400">Formatos aceitos: .xlsx, .xls</span>
         </label>
         <input
@@ -74,14 +162,23 @@ export default function Importacao() {
           type="file"
           accept=".xlsx,.xls"
           className="sr-only"
-          onChange={(e) => handleSelecionarArquivo(e.target.files?.[0])}
+          onChange={(e) => selecionarArquivo(e.target.files?.[0])}
           aria-describedby={erroArquivo ? 'arquivo-erro' : undefined}
         />
 
-        {arquivo && (
-          <div className="mt-4 flex items-center gap-2 rounded-md bg-gray-50 px-3 py-2 text-sm text-gray-700">
-            <FileSpreadsheet className="h-4 w-4 text-gray-500" aria-hidden="true" />
-            {arquivo.name}
+        {arquivo && statusProcessamento && (
+          <div className="mt-4 flex flex-wrap items-center gap-3 rounded-md bg-gray-50 px-3 py-2.5 text-sm text-gray-700">
+            <FileSpreadsheet className="h-4 w-4 shrink-0 text-gray-500" aria-hidden="true" />
+            <span className="font-medium">{arquivo.name}</span>
+            <span className="text-xs text-gray-400">{formatarTamanho(arquivo.size)}</span>
+            {selecionadoEm && (
+              <span className="text-xs text-gray-400">Selecionado em {selecionadoEm.toLocaleString('pt-BR')}</span>
+            )}
+            <span
+              className={`ml-auto rounded-full px-2.5 py-1 text-xs font-medium ${STATUS_ESTILO[statusProcessamento]}`}
+            >
+              {STATUS_LABEL[statusProcessamento]}
+            </span>
           </div>
         )}
 
@@ -91,12 +188,41 @@ export default function Importacao() {
           </p>
         )}
 
+        {duplicataPendente && (
+          <div role="alert" className="mt-4 flex flex-col gap-3 rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900">
+            <div className="flex items-start gap-2">
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+              <p>
+                Esta planilha (ou os mesmos dados) já foi processada em{' '}
+                <strong>{new Date(duplicataPendente.duplicata.dataImportacao).toLocaleString('pt-BR')}</strong>, no
+                arquivo "{duplicataPendente.duplicata.nomeArquivo}". Deseja continuar mesmo assim?
+              </p>
+            </div>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => setDuplicataPendente(null)}
+                className="rounded-md border border-amber-300 bg-white px-3 py-1.5 text-sm font-medium text-amber-800 hover:bg-amber-100"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={() => processar({ linhas: duplicataPendente.linhas, hash: duplicataPendente.hash })}
+                className="rounded-md bg-amber-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-amber-700"
+              >
+                Continuar mesmo assim
+              </button>
+            </div>
+          </div>
+        )}
+
         <div className="mt-4">
           <button
             type="button"
-            onClick={handleProcessar}
+            onClick={() => processar()}
             disabled={!arquivo || processando}
-            className="inline-flex items-center gap-2 rounded-md bg-blue-700 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-60"
+            className="inline-flex items-center gap-2 rounded-md bg-brand px-5 py-2.5 text-sm font-medium text-white transition hover:bg-brand-dark disabled:cursor-not-allowed disabled:opacity-60"
           >
             {processando ? 'Processando…' : 'Processar planilha'}
           </button>
@@ -117,41 +243,49 @@ export default function Importacao() {
         <div className="space-y-4 rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
           <div className="flex items-center gap-2 text-green-700">
             <CheckCircle2 className="h-5 w-5" aria-hidden="true" />
-            <h2 className="text-sm font-semibold">Planilha processada</h2>
+            <h2 className="text-sm font-semibold">Importação concluída</h2>
           </div>
 
-          <dl className="grid grid-cols-2 gap-4 text-sm sm:grid-cols-3">
+          <dl className="grid grid-cols-2 gap-4 text-sm sm:grid-cols-5">
             <div className="rounded-lg bg-gray-50 p-3">
               <dt className="text-xs text-gray-500">Linhas lidas</dt>
               <dd className="text-lg font-semibold text-gray-900">{resultado.totalLinhas}</dd>
             </div>
             <div className="rounded-lg bg-gray-50 p-3">
-              <dt className="text-xs text-gray-500">Entregas geradas</dt>
-              <dd className="text-lg font-semibold text-gray-900">{resultado.totalEntregas}</dd>
+              <dt className="text-xs text-gray-500">Escolas identificadas</dt>
+              <dd className="text-lg font-semibold text-gray-900">{resultado.totalEscolas}</dd>
             </div>
             <div className="rounded-lg bg-gray-50 p-3">
-              <dt className="text-xs text-gray-500">Avisos</dt>
-              <dd className="text-lg font-semibold text-gray-900">{resultado.erros.length}</dd>
+              <dt className="text-xs text-gray-500">Recibos preparados</dt>
+              <dd className="text-lg font-semibold text-gray-900">{resultado.totalRecibosPreparados}</dd>
+            </div>
+            <div className="rounded-lg bg-amber-50 p-3">
+              <dt className="text-xs text-amber-700">Com erro</dt>
+              <dd className="text-lg font-semibold text-amber-900">{resultado.totalComErro}</dd>
+            </div>
+            <div className="rounded-lg bg-gray-50 p-3">
+              <dt className="text-xs text-gray-500">Duplicados</dt>
+              <dd className="text-lg font-semibold text-gray-900">{resultado.totalDuplicados}</dd>
             </div>
           </dl>
 
-          {resultado.erros.length > 0 && (
+          {resultado.avisos.length > 0 && (
             <div>
-              <h3 className="mb-1 text-xs font-semibold uppercase text-gray-500">Avisos encontrados</h3>
+              <h3 className="mb-1 text-xs font-semibold uppercase text-gray-500">Avisos gerais</h3>
               <ul className="max-h-40 space-y-1 overflow-y-auto rounded-md bg-amber-50 p-3 text-xs text-amber-800">
-                {resultado.erros.map((erroItem, index) => (
-                  <li key={index}>{erroItem}</li>
+                {resultado.avisos.map((aviso, index) => (
+                  <li key={index}>{aviso}</li>
                 ))}
               </ul>
             </div>
           )}
 
-          {resultado.totalEntregas > 0 && (
+          {resultado.totalRecibosPreparados > 0 && (
             <p className="text-sm text-gray-600">
-              As entregas importadas já estão disponíveis para consulta.{' '}
-              <Link to="/consulta" className="font-medium text-blue-700 hover:underline">
-                Ir para Consultar Entrega
-              </Link>
+              <Link to="/lote" className="font-medium text-brand hover:underline">
+                Ver recibos preparados
+              </Link>{' '}
+              para conferir, corrigir o que tiver pendência e gerar os PDFs.
             </p>
           )}
         </div>

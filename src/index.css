@@ -1,14 +1,20 @@
 @import "tailwindcss";
 
+/*
+ * Identidade visual da empresa (placeholder até os materiais oficiais
+ * chegarem — logotipo, paleta e tipografia reais). Os componentes usam as
+ * classes bg-brand/text-brand/border-brand geradas a partir destes tokens
+ * (e o logo lido de EMPRESA.logoUrl em src/services/mockData.ts), então
+ * trocar a marca no sistema inteiro é alterar só os valores abaixo.
+ */
+@theme {
+  --color-brand: #1f4b99;
+  --color-brand-dark: #163a7a;
+  --color-brand-light: #eaf0fb;
+}
+
 :root {
   color-scheme: light;
-  --color-bg: #f6f7f9;
-  --color-surface: #ffffff;
-  --color-border: #e4e7ec;
-  --color-text: #1c2129;
-  --color-text-muted: #667085;
-  --color-primary: #1f4b99;
-  --color-primary-dark: #163a7a;
 }
 
 html,

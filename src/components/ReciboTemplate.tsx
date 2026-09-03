@@ -1,6 +1,7 @@
 import type { Empresa, JsonObject } from '../types';
 import { formatCnpj, formatCurrency, formatDate } from '../utils/formatters';
 import DynamicDataRenderer from './DynamicDataRenderer';
+import Logo from './Logo';
 
 interface ReciboTemplateProps {
   empresa: Empresa;
@@ -83,10 +84,13 @@ export default function ReciboTemplate({ empresa, dados }: ReciboTemplateProps) 
       style={{ fontFamily: 'Arial, Helvetica, sans-serif' }}
     >
       <header className="flex items-start justify-between border-b-2 border-gray-800 pb-4">
-        <div>
-          <h1 className="text-lg font-bold uppercase tracking-wide">{empresa.nome}</h1>
-          {empresa.cnpj && <p className="text-xs text-gray-600">CNPJ: {formatCnpj(empresa.cnpj)}</p>}
-          {empresa.endereco && <p className="text-xs text-gray-600">{empresa.endereco}</p>}
+        <div className="flex items-start gap-3">
+          <Logo className="mt-0.5 h-8 w-8 shrink-0" />
+          <div>
+            <h1 className="text-lg font-bold uppercase tracking-wide">{empresa.nome}</h1>
+            {empresa.cnpj && <p className="text-xs text-gray-600">CNPJ: {formatCnpj(empresa.cnpj)}</p>}
+            {empresa.endereco && <p className="text-xs text-gray-600">{empresa.endereco}</p>}
+          </div>
         </div>
         <div className="text-right">
           <p className="text-sm font-semibold uppercase text-gray-700">Recibo de Entrega</p>

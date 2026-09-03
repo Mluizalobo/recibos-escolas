@@ -55,7 +55,7 @@ export default function SearchForm({ onBuscar, loading }: SearchFormProps) {
           value={tipo}
           onChange={(e) => handleTipoChange(e.target.value as SearchType)}
           disabled={loading}
-          className="h-10 rounded-md border border-gray-300 bg-white px-3 text-sm text-gray-800 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100 disabled:opacity-60 sm:w-48"
+          className="h-10 rounded-md border border-gray-300 bg-white px-3 text-sm text-gray-800 focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand-light disabled:opacity-60 sm:w-48"
         >
           {SEARCH_TYPES.map((opcao) => (
             <option key={opcao.value} value={opcao.value}>
@@ -82,7 +82,7 @@ export default function SearchForm({ onBuscar, loading }: SearchFormProps) {
           className={`h-10 rounded-md border px-3 text-sm text-gray-800 focus:outline-none focus:ring-2 disabled:opacity-60 ${
             erroValidacao
               ? 'border-red-400 focus:border-red-500 focus:ring-red-100'
-              : 'border-gray-300 focus:border-blue-500 focus:ring-blue-100'
+              : 'border-gray-300 focus:border-brand focus:ring-brand-light'
           }`}
         />
         {erroValidacao && (
@@ -95,7 +95,7 @@ export default function SearchForm({ onBuscar, loading }: SearchFormProps) {
       <button
         type="submit"
         disabled={loading}
-        className="flex h-10 items-center justify-center gap-2 rounded-md bg-blue-700 px-5 text-sm font-medium text-white transition hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-60"
+        className="flex h-10 items-center justify-center gap-2 rounded-md bg-brand px-5 text-sm font-medium text-white transition hover:bg-brand-dark disabled:cursor-not-allowed disabled:opacity-60"
       >
         <Search className="h-4 w-4" aria-hidden="true" />
         {loading ? 'Consultando…' : 'Consultar'}

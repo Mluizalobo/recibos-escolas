@@ -1,17 +1,20 @@
 import { useState, type ReactNode } from 'react';
 import { BrowserRouter, NavLink, Route, Routes } from 'react-router-dom';
-import { Building2, Menu, X } from 'lucide-react';
+import { Menu, X } from 'lucide-react';
 import Dashboard from './pages/Dashboard';
 import Consulta from './pages/Consulta';
 import Importacao from './pages/Importacao';
+import Historico from './pages/Historico';
 import BatchGenerator from './components/BatchGenerator';
+import Logo from './components/Logo';
 import { EMPRESA } from './services/api';
 
 const LINKS = [
   { to: '/', label: 'Dashboard', end: true },
   { to: '/consulta', label: 'Consultar Entrega', end: false },
   { to: '/importacao', label: 'Importar Planilha', end: false },
-  { to: '/lote', label: 'Gerar em Lote', end: false },
+  { to: '/lote', label: 'Recibos Preparados', end: false },
+  { to: '/historico', label: 'Histórico', end: false },
 ];
 
 function Layout({ children }: { children: ReactNode }) {
@@ -22,7 +25,7 @@ function Layout({ children }: { children: ReactNode }) {
       <header className="no-print sticky top-0 z-10 border-b border-gray-200 bg-white">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3 sm:px-6">
           <div className="flex items-center gap-2">
-            <Building2 className="h-5 w-5 text-blue-700" aria-hidden="true" />
+            <Logo className="h-6 w-6" />
             <span className="text-sm font-semibold text-gray-900">{EMPRESA.nome}</span>
           </div>
 
@@ -34,7 +37,7 @@ function Layout({ children }: { children: ReactNode }) {
                 end={link.end}
                 className={({ isActive }) =>
                   `rounded-md px-3 py-2 text-sm font-medium transition ${
-                    isActive ? 'bg-blue-50 text-blue-700' : 'text-gray-600 hover:bg-gray-100'
+                    isActive ? 'bg-brand-light text-brand' : 'text-gray-600 hover:bg-gray-100'
                   }`
                 }
               >
@@ -67,7 +70,7 @@ function Layout({ children }: { children: ReactNode }) {
                 onClick={() => setMenuAberto(false)}
                 className={({ isActive }) =>
                   `rounded-md px-3 py-2 text-sm font-medium ${
-                    isActive ? 'bg-blue-50 text-blue-700' : 'text-gray-600 hover:bg-gray-100'
+                    isActive ? 'bg-brand-light text-brand' : 'text-gray-600 hover:bg-gray-100'
                   }`
                 }
               >
@@ -116,6 +119,14 @@ export default function App() {
           element={
             <Layout>
               <BatchGenerator />
+            </Layout>
+          }
+        />
+        <Route
+          path="/historico"
+          element={
+            <Layout>
+              <Historico />
             </Layout>
           }
         />

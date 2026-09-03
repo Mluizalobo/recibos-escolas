@@ -60,7 +60,7 @@ export default function ReciboPreview({ empresa, dados, nomeArquivo, onVoltar }:
             type="button"
             onClick={handleGerarPdf}
             disabled={gerando}
-            className="inline-flex items-center gap-2 rounded-md bg-blue-700 px-4 py-2 text-sm font-medium text-white hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-60"
+            className="inline-flex items-center gap-2 rounded-md bg-brand px-4 py-2 text-sm font-medium text-white hover:bg-brand-dark disabled:cursor-not-allowed disabled:opacity-60"
           >
             <FileDown className="h-4 w-4" aria-hidden="true" />
             {gerando ? 'Gerando PDF…' : 'Gerar PDF'}
