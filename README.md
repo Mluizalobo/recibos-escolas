@@ -1,4 +1,4 @@
-# Recibos de Entrega — Distribuidora Alvorada
+# Recibos de Entrega — GP Distribuidora
 
 Aplicação web que substitui o processo manual de gerar recibos de entrega
 por escola a partir da planilha semanal (planilha → copiar dados no Word →
@@ -99,22 +99,33 @@ geração de PDF nunca ficam misturadas no mesmo arquivo.**
 
 ## Identidade visual
 
-Ainda não recebemos o logotipo e a paleta oficiais da empresa, então o
-sistema usa um placeholder configurado de forma centralizada — trocar a
-marca depois é mexer em **dois lugares**, não em cada componente:
+O sistema já usa a marca real da **GP Distribuidora** (logotipo e paleta
+extraídos do arquivo oficial), configurada de forma centralizada — ajustar
+qualquer coisa depois é mexer em poucos lugares, não em cada componente:
 
-- **Cores**: tokens `--color-brand`, `--color-brand-dark` e
-  `--color-brand-light` no bloco `@theme` de `src/index.css`. Todos os
-  botões primários, links e destaques usam as classes `bg-brand`,
-  `text-brand` etc. geradas a partir deles.
-- **Logo**: `src/components/Logo.tsx` usa `EMPRESA.logoUrl`
-  (`src/services/mockData.ts`) quando definido; até lá, mostra um ícone
-  genérico na cor da marca. É o mesmo componente usado no cabeçalho do
+- **Logo**: `src/assets/logo-gp.png` (recortado do arquivo enviado, só o
+  símbolo, sem a palavra "DISTRIBUIDORA" — em tamanho de ícone o nome já
+  aparece como texto ao lado, via `EMPRESA.nome`). `src/components/Logo.tsx`
+  usa `EMPRESA.logoUrl` (`src/services/mockData.ts`); se um dia faltar,
+  cai num ícone genérico. É o mesmo componente usado no cabeçalho do
   sistema e no cabeçalho do recibo.
+- **Cores**: tokens no bloco `@theme` de `src/index.css`:
+  - `--color-brand` (`#0a6fae`) — usado em botões primários, links e
+    destaques (`bg-brand`, `text-brand`...). É uma versão mais escura do
+    ciano do logo (`#00a8e8`): o tom vivo puro não tem contraste
+    suficiente para texto branco em botão (~2.7:1); esta versão passa de
+    5:1.
+  - `--color-brand-accent` (`#00a8e8`) e `--color-brand-yellow`
+    (`#f5ee00`) — o ciano vivo e o amarelo do logo, usados só como
+    decoração pontual (o friso no topo do recibo), não em texto.
 
 Cores de status (verde/âmbar/vermelho/roxo nos badges de situação da
 entrega e do recibo) são propositalmente independentes da marca — não devem
-mudar se a cor principal mudar.
+mudar se a paleta principal mudar.
+
+CNPJ e endereço em `EMPRESA` (`src/services/mockData.ts`) ainda são
+placeholder — trocar pelos dados reais de cadastro da empresa quando
+disponíveis.
 
 ## Onde configurar a fonte de dados
 

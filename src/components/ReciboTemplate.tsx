@@ -87,12 +87,18 @@ export default function ReciboTemplate({ empresa, dados }: ReciboTemplateProps) 
       style={{
         width: '210mm',
         minHeight: '297mm',
-        padding: '12mm',
         boxSizing: 'border-box',
         fontFamily: 'Arial, Helvetica, sans-serif',
       }}
     >
-      <header className="flex items-start justify-between border-b-2 border-gray-800 pb-4">
+      {/* Friso de abertura com as cores da marca — mesma sangria da folha A4, sem entrar no padding do conteúdo. */}
+      <div className="flex h-[3mm] w-full" aria-hidden="true">
+        <div className="flex-1 bg-brand-accent" />
+        <div className="flex-1 bg-brand-yellow" />
+      </div>
+
+      <div style={{ padding: '12mm' }}>
+        <header className="flex items-start justify-between border-b-2 border-gray-800 pb-4">
         <div className="flex items-start gap-3">
           <Logo className="mt-0.5 h-8 w-8 shrink-0" />
           <div>
@@ -180,9 +186,10 @@ export default function ReciboTemplate({ empresa, dados }: ReciboTemplateProps) 
         </div>
       </section>
 
-      <div className="mt-8 flex justify-end">
-        <div className="h-16 w-24 rounded border border-dashed border-gray-300 text-center text-[9px] leading-[4rem] text-gray-300">
-          Carimbo
+        <div className="mt-8 flex justify-end">
+          <div className="h-16 w-24 rounded border border-dashed border-gray-300 text-center text-[9px] leading-[4rem] text-gray-300">
+            Carimbo
+          </div>
         </div>
       </div>
     </div>

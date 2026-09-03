@@ -1,4 +1,5 @@
 import type { Empresa, JsonObject, SearchType } from '../types';
+import logoGp from '../assets/logo-gp.png';
 
 /**
  * Cada registro mockado guarda os valores pelos quais pode ser encontrado
@@ -15,9 +16,11 @@ export interface MockRegistro {
 }
 
 export const EMPRESA: Empresa = {
-  nome: 'Distribuidora Alvorada Ltda.',
+  nome: 'GP Distribuidora',
+  // CNPJ e endereço ainda são placeholder — trocar pelos dados reais da empresa quando disponíveis.
   cnpj: '00.111.222/0001-33',
   endereco: 'Rod. BR-040, Km 12 — Distrito Industrial, Congonhas/MG',
+  logoUrl: logoGp,
 };
 
 export const MOCK_REGISTROS: MockRegistro[] = [
