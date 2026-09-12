@@ -223,9 +223,9 @@ Cores de status (verde/âmbar/vermelho/azul/roxo nos badges de situação da
 entrega e do recibo) são propositalmente independentes da marca — não devem
 mudar se a paleta principal mudar.
 
-CNPJ, endereço, telefone e e-mail em `EMPRESA` (`src/services/mockData.ts`,
-exibidos em Dados da Empresa) ainda são placeholder — trocar pelos dados
-reais de cadastro quando disponíveis.
+CNPJ, endereço, telefone e e-mail reais da empresa ficam em `EMPRESA`
+(`src/services/mockData.ts`), exibidos em Dados da Empresa e no cabeçalho do
+recibo.
 
 ## Onde configurar a fonte de dados
 
@@ -286,17 +286,18 @@ Novos tipos de identificador (ex: "turma", "regional") são adicionados em um
 2. Além de código da entrega/pedido/CNPJ+data/nome da escola (nessa ordem de
    prioridade hoje), existe outra regra para saber que várias linhas
    pertencem à mesma entrega?
-3. A numeração grande do recibo (hoje mapeada do "Pedido") é sequencial por
-   entrega, por rota do dia, ou outra lógica?
-4. Quais campos são realmente obrigatórios para o recibo ser válido perante
-   a prefeitura — hoje só "nenhum item" bloqueia ("Com erro"); endereço
-   ausente é só aviso ("Pendente").
-5. O "Recebido por" é sempre assinado fisicamente no papel impresso, ou
+3. A numeração grande do recibo (hoje mapeada do "Pedido", ou inferida pela
+   posição na lista no formato matriz) é sequencial por entrega, por rota do
+   dia, ou outra lógica?
+4. O "Recebido por" é sempre assinado fisicamente no papel impresso, ou
    pode vir preenchido já na planilha (nome de quem vai receber)?
-6. CNPJ, endereço, telefone e e-mail reais da empresa, para a tela Dados da
-   Empresa e o cabeçalho do sistema.
-7. Login de verdade: existe (ou vai existir) um backend/provedor de
+5. Login de verdade: existe (ou vai existir) um backend/provedor de
    autenticação, ou o controle de acesso deve continuar simples assim?
+
+Nenhum dado ausente bloqueia mais a geração do recibo (ver "Fluxo principal"
+acima) — a única pendência "que vale a pena resolver antes de gerar" é
+mesmo a falta de item com quantidade, e mesmo essa gera o recibo, só fica
+marcada para conferência.
 
 ## O que já funciona ponta a ponta
 

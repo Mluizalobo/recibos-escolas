@@ -19,11 +19,10 @@ export interface MockRegistro {
 export const EMPRESA: Empresa = {
   nome: 'Grupo Líder',
   razaoSocial: 'Líder BHZ Comércio e Serviços LTDA',
-  // CNPJ, endereço, telefone e e-mail ainda são placeholder — trocar pelos dados reais quando disponíveis.
-  cnpj: '00.111.222/0001-33',
-  endereco: 'Belo Horizonte/MG',
-  telefone: '(31) 0000-0000',
-  email: 'contato@grupolider.com.br',
+  cnpj: '55.716.529/0001-06',
+  endereco: 'Rua José Pedro, 249, Sala 02, Parque Antônio Amabile — CEP 32400-309',
+  telefone: '(31) 3050-2000',
+  email: 'grupoliderbhz@gmail.com',
   logoUrl: logoIcone,
   logoLockupUrl: logoLockup,
 };

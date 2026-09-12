@@ -39,12 +39,6 @@ export default function DadosEmpresa() {
           <Campo icone={Mail} label="E-mail" valor={EMPRESA.email} />
         </dl>
       </div>
-
-      <p className="text-xs text-gray-400 dark:text-gray-500">
-        CNPJ, endereço, telefone e e-mail ainda são placeholder — atualizar em{' '}
-        <code className="rounded bg-gray-100 dark:bg-gray-800 px-1 py-0.5">src/services/mockData.ts</code> quando os dados reais da
-        empresa estiverem disponíveis.
-      </p>
     </div>
   );
 }
