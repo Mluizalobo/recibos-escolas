@@ -33,7 +33,7 @@ function saoObjetosSemelhantes(objetos: JsonObject[]): boolean {
 
 function ArrayRenderer({ items }: { items: JsonValue[] }) {
   if (items.length === 0) {
-    return <p className="text-sm italic text-gray-400">Nenhum registro</p>;
+    return <p className="text-sm italic text-gray-400 dark:text-gray-500">Nenhum registro</p>;
   }
 
   const todosObjetos = items.every(isJsonObject);
@@ -58,7 +58,7 @@ function ArrayRenderer({ items }: { items: JsonValue[] }) {
         {(items as JsonPrimitive[]).map((item, index) => (
           <span
             key={index}
-            className="inline-flex items-center rounded-full bg-brand-light px-3 py-1 text-xs font-medium text-brand"
+            className="inline-flex items-center rounded-full bg-brand-light dark:bg-brand/20 px-3 py-1 text-xs font-medium text-brand dark:text-green-400"
           >
             {formatPrimitiveValue(item)}
           </span>
@@ -72,7 +72,7 @@ function ArrayRenderer({ items }: { items: JsonValue[] }) {
   return (
     <ul className="space-y-2">
       {items.map((item, index) => (
-        <li key={index} className="rounded-lg border border-gray-100 p-2">
+        <li key={index} className="rounded-lg border border-gray-100 dark:border-gray-800 p-2">
           <DynamicDataRenderer data={item} level={1} />
         </li>
       ))}
@@ -83,19 +83,19 @@ function ArrayRenderer({ items }: { items: JsonValue[] }) {
 function Campo({ label, valor, level }: { label: string; valor: JsonValue; level: number }) {
   if (isPrimitive(valor)) {
     return (
-      <div className="flex flex-col gap-0.5 border-b border-gray-100 pb-2 last:border-0 sm:flex-row sm:items-baseline sm:gap-2">
-        <dt className="text-xs font-medium uppercase tracking-wide text-gray-500 sm:w-48 sm:shrink-0">
+      <div className="flex flex-col gap-0.5 border-b border-gray-100 dark:border-gray-800 pb-2 last:border-0 sm:flex-row sm:items-baseline sm:gap-2">
+        <dt className="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400 sm:w-48 sm:shrink-0">
           {label}
         </dt>
-        <dd className="text-sm text-gray-900">{formatPrimitiveValue(valor, label)}</dd>
+        <dd className="text-sm text-gray-900 dark:text-gray-100">{formatPrimitiveValue(valor, label)}</dd>
       </div>
     );
   }
 
   if (Array.isArray(valor)) {
     return (
-      <div className="space-y-2 border-b border-gray-100 pb-3 last:border-0">
-        <dt className="text-xs font-semibold uppercase tracking-wide text-gray-500">{label}</dt>
+      <div className="space-y-2 border-b border-gray-100 dark:border-gray-800 pb-3 last:border-0">
+        <dt className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">{label}</dt>
         <dd>
           <ArrayRenderer items={valor} />
         </dd>
@@ -104,8 +104,8 @@ function Campo({ label, valor, level }: { label: string; valor: JsonValue; level
   }
 
   return (
-    <div className="space-y-2 rounded-lg border border-gray-100 bg-gray-50/60 p-3">
-      <dt className="text-sm font-semibold text-gray-800">{label}</dt>
+    <div className="space-y-2 rounded-lg border border-gray-100 dark:border-gray-800 bg-gray-50/60 dark:bg-gray-800/60 p-3">
+      <dt className="text-sm font-semibold text-gray-800 dark:text-gray-200">{label}</dt>
       <dd>
         <DynamicDataRenderer data={valor} level={level + 1} />
       </dd>
@@ -129,7 +129,7 @@ interface DynamicDataRendererProps {
  */
 export default function DynamicDataRenderer({ data, level = 0 }: DynamicDataRendererProps) {
   if (isPrimitive(data)) {
-    return <span className="text-sm text-gray-800">{formatPrimitiveValue(data)}</span>;
+    return <span className="text-sm text-gray-800 dark:text-gray-200">{formatPrimitiveValue(data)}</span>;
   }
 
   if (Array.isArray(data)) {
@@ -142,7 +142,7 @@ export default function DynamicDataRenderer({ data, level = 0 }: DynamicDataRend
   ][];
 
   if (entradas.length === 0) {
-    return <p className="text-sm italic text-gray-400">{EMPTY_PLACEHOLDER}</p>;
+    return <p className="text-sm italic text-gray-400 dark:text-gray-500">{EMPTY_PLACEHOLDER}</p>;
   }
 
   return (

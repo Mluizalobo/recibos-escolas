@@ -21,7 +21,7 @@ const STATUS_LABEL: Record<StatusProcessamento, string> = {
 };
 
 const STATUS_ESTILO: Record<StatusProcessamento, string> = {
-  selecionado: 'bg-gray-100 text-gray-600',
+  selecionado: 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400',
   processando: 'bg-blue-50 text-blue-700',
   concluido: 'bg-green-100 text-green-700',
   erro: 'bg-red-100 text-red-700',
@@ -195,14 +195,14 @@ export default function Importacao() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-xl font-semibold text-gray-900">Importar Planilha</h1>
-        <p className="text-sm text-gray-500">
+        <h1 className="text-xl font-semibold text-gray-900 dark:text-gray-100">Importar Planilha</h1>
+        <p className="text-sm text-gray-500 dark:text-gray-400">
           Envie a planilha semanal de entregas (.xlsx ou .xls). O sistema lê, organiza por escola e já deixa os
           recibos preparados para conferência — sem digitação manual.
         </p>
       </div>
 
-      <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+      <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 shadow-sm">
         <label
           htmlFor="arquivo-planilha"
           onDragOver={(e) => {
@@ -212,12 +212,12 @@ export default function Importacao() {
           onDragLeave={() => setArrastando(false)}
           onDrop={handleDrop}
           className={`flex cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed px-6 py-10 text-center transition ${
-            arrastando ? 'border-brand bg-brand-light' : 'border-gray-300 hover:border-brand hover:bg-brand-light/40'
+            arrastando ? 'border-brand dark:border-green-600 bg-brand-light dark:bg-brand/20' : 'border-gray-300 dark:border-gray-700 hover:border-brand hover:dark:border-green-600 hover:bg-brand-light/40 hover:dark:bg-brand/10'
           }`}
         >
-          <UploadCloud className="h-8 w-8 text-gray-400" aria-hidden="true" />
-          <span className="text-sm font-medium text-gray-700">Clique para selecionar ou arraste a planilha aqui</span>
-          <span className="text-xs text-gray-400">Formatos aceitos: .xlsx, .xls</span>
+          <UploadCloud className="h-8 w-8 text-gray-400 dark:text-gray-500" aria-hidden="true" />
+          <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Clique para selecionar ou arraste a planilha aqui</span>
+          <span className="text-xs text-gray-400 dark:text-gray-500">Formatos aceitos: .xlsx, .xls</span>
         </label>
         <input
           ref={inputRef}
@@ -230,12 +230,12 @@ export default function Importacao() {
         />
 
         {arquivo && statusProcessamento && (
-          <div className="mt-4 flex flex-wrap items-center gap-3 rounded-md bg-gray-50 px-3 py-2.5 text-sm text-gray-700">
-            <FileSpreadsheet className="h-4 w-4 shrink-0 text-gray-500" aria-hidden="true" />
+          <div className="mt-4 flex flex-wrap items-center gap-3 rounded-md bg-gray-50 dark:bg-gray-800 px-3 py-2.5 text-sm text-gray-700 dark:text-gray-300">
+            <FileSpreadsheet className="h-4 w-4 shrink-0 text-gray-500 dark:text-gray-400" aria-hidden="true" />
             <span className="font-medium">{arquivo.name}</span>
-            <span className="text-xs text-gray-400">{formatarTamanho(arquivo.size)}</span>
+            <span className="text-xs text-gray-400 dark:text-gray-500">{formatarTamanho(arquivo.size)}</span>
             {selecionadoEm && (
-              <span className="text-xs text-gray-400">Selecionado em {selecionadoEm.toLocaleString('pt-BR')}</span>
+              <span className="text-xs text-gray-400 dark:text-gray-500">Selecionado em {selecionadoEm.toLocaleString('pt-BR')}</span>
             )}
             <span
               className={`ml-auto rounded-full px-2.5 py-1 text-xs font-medium ${STATUS_ESTILO[statusProcessamento]}`}
@@ -265,7 +265,7 @@ export default function Importacao() {
               <button
                 type="button"
                 onClick={() => setDuplicataPendente(null)}
-                className="rounded-md border border-amber-300 bg-white px-3 py-1.5 text-sm font-medium text-amber-800 hover:bg-amber-100"
+                className="rounded-md border border-amber-300 bg-white dark:bg-gray-900 px-3 py-1.5 text-sm font-medium text-amber-800 hover:bg-amber-100"
               >
                 Cancelar
               </button>
@@ -303,37 +303,37 @@ export default function Importacao() {
       )}
 
       {resultado && (
-        <div className="space-y-4 rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+        <div className="space-y-4 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-5 shadow-sm">
           <div className="flex items-center gap-2 text-green-700">
             <CheckCircle2 className="h-5 w-5" aria-hidden="true" />
             <h2 className="text-sm font-semibold">Importação concluída</h2>
           </div>
 
           <dl className="grid grid-cols-2 gap-4 text-sm sm:grid-cols-5">
-            <div className="rounded-lg bg-gray-50 p-3">
-              <dt className="text-xs text-gray-500">Linhas lidas</dt>
-              <dd className="text-lg font-semibold text-gray-900">{resultado.totalLinhas}</dd>
+            <div className="rounded-lg bg-gray-50 dark:bg-gray-800 p-3">
+              <dt className="text-xs text-gray-500 dark:text-gray-400">Linhas lidas</dt>
+              <dd className="text-lg font-semibold text-gray-900 dark:text-gray-100">{resultado.totalLinhas}</dd>
             </div>
-            <div className="rounded-lg bg-gray-50 p-3">
-              <dt className="text-xs text-gray-500">Escolas identificadas</dt>
-              <dd className="text-lg font-semibold text-gray-900">{resultado.totalEscolas}</dd>
+            <div className="rounded-lg bg-gray-50 dark:bg-gray-800 p-3">
+              <dt className="text-xs text-gray-500 dark:text-gray-400">Escolas identificadas</dt>
+              <dd className="text-lg font-semibold text-gray-900 dark:text-gray-100">{resultado.totalEscolas}</dd>
             </div>
-            <div className="rounded-lg bg-gray-50 p-3">
-              <dt className="text-xs text-gray-500">Recibos preparados</dt>
-              <dd className="text-lg font-semibold text-gray-900">{resultado.totalRecibosPreparados}</dd>
+            <div className="rounded-lg bg-gray-50 dark:bg-gray-800 p-3">
+              <dt className="text-xs text-gray-500 dark:text-gray-400">Recibos preparados</dt>
+              <dd className="text-lg font-semibold text-gray-900 dark:text-gray-100">{resultado.totalRecibosPreparados}</dd>
             </div>
             <div className="rounded-lg bg-amber-50 p-3">
               <dt className="text-xs text-amber-700">Com erro</dt>
               <dd className="text-lg font-semibold text-amber-900">{resultado.totalComErro}</dd>
             </div>
-            <div className="rounded-lg bg-gray-50 p-3">
-              <dt className="text-xs text-gray-500">Duplicados</dt>
-              <dd className="text-lg font-semibold text-gray-900">{resultado.totalDuplicados}</dd>
+            <div className="rounded-lg bg-gray-50 dark:bg-gray-800 p-3">
+              <dt className="text-xs text-gray-500 dark:text-gray-400">Duplicados</dt>
+              <dd className="text-lg font-semibold text-gray-900 dark:text-gray-100">{resultado.totalDuplicados}</dd>
             </div>
           </dl>
 
           {escolasNovasCadastradas > 0 && (
-            <p className="rounded-md bg-brand-light px-3 py-2 text-sm text-brand-dark">
+            <p className="rounded-md bg-brand-light dark:bg-brand/20 px-3 py-2 text-sm text-brand-dark dark:text-green-500">
               {escolasNovasCadastradas} escola{escolasNovasCadastradas === 1 ? '' : 's'} nova
               {escolasNovasCadastradas === 1 ? '' : 's'} cadastrada
               {escolasNovasCadastradas === 1 ? '' : 's'} automaticamente em "Escolas Cadastradas" a partir desta
@@ -343,7 +343,7 @@ export default function Importacao() {
 
           {resultado.avisos.length > 0 && (
             <div>
-              <h3 className="mb-1 text-xs font-semibold uppercase text-gray-500">Avisos gerais</h3>
+              <h3 className="mb-1 text-xs font-semibold uppercase text-gray-500 dark:text-gray-400">Avisos gerais</h3>
               <ul className="max-h-40 space-y-1 overflow-y-auto rounded-md bg-amber-50 p-3 text-xs text-amber-800">
                 {resultado.avisos.map((aviso, index) => (
                   <li key={index}>{aviso}</li>
@@ -353,8 +353,8 @@ export default function Importacao() {
           )}
 
           {resultado.totalRecibosPreparados > 0 && (
-            <p className="text-sm text-gray-600">
-              <Link to="/lote" className="font-medium text-brand hover:underline">
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              <Link to="/lote" className="font-medium text-brand dark:text-green-400 hover:underline">
                 Ver recibos preparados
               </Link>{' '}
               para conferir, corrigir o que tiver pendência e gerar os PDFs.
@@ -364,19 +364,19 @@ export default function Importacao() {
       )}
 
       {gradeBruta && gradeBruta.length > 0 && (
-        <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+        <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-5 shadow-sm">
           <button
             type="button"
             onClick={() => setMostrarBruta((v) => !v)}
             className="flex w-full items-center justify-between text-left"
           >
-            <span className="text-sm font-semibold text-gray-800">
+            <span className="text-sm font-semibold text-gray-800 dark:text-gray-200">
               Planilha original ({gradeBruta.length} linha{gradeBruta.length === 1 ? '' : 's'})
             </span>
             {mostrarBruta ? (
-              <EyeOff className="h-4 w-4 text-gray-400" aria-hidden="true" />
+              <EyeOff className="h-4 w-4 text-gray-400 dark:text-gray-500" aria-hidden="true" />
             ) : (
-              <Eye className="h-4 w-4 text-gray-400" aria-hidden="true" />
+              <Eye className="h-4 w-4 text-gray-400 dark:text-gray-500" aria-hidden="true" />
             )}
           </button>
 
@@ -403,13 +403,13 @@ function GradePreview({ grade }: { grade: PlanilhaGrade }) {
 
   return (
     <div className="mt-4">
-      <div className="overflow-x-auto rounded-lg border border-gray-200">
-        <table className="min-w-full divide-y divide-gray-200 text-xs">
-          <tbody className="divide-y divide-gray-100 bg-white">
+      <div className="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-800">
+        <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-800 text-xs">
+          <tbody className="divide-y divide-gray-100 dark:divide-gray-800 bg-white dark:bg-gray-900">
             {linhas.map((linha, indiceLinha) => (
-              <tr key={indiceLinha} className={indiceLinha === 0 ? 'bg-gray-50 font-semibold' : undefined}>
+              <tr key={indiceLinha} className={indiceLinha === 0 ? 'bg-gray-50 dark:bg-gray-800 font-semibold' : undefined}>
                 {Array.from({ length: totalColunas }).map((_, indiceColuna) => (
-                  <td key={indiceColuna} className="whitespace-nowrap px-2 py-1 text-gray-700">
+                  <td key={indiceColuna} className="whitespace-nowrap px-2 py-1 text-gray-700 dark:text-gray-300">
                     {formatarCelula(linha[indiceColuna])}
                   </td>
                 ))}
@@ -419,7 +419,7 @@ function GradePreview({ grade }: { grade: PlanilhaGrade }) {
         </table>
       </div>
       {(grade.length > MAX_LINHAS_PREVIEW || maxColunasReais > MAX_COLUNAS_PREVIEW) && (
-        <p className="mt-2 text-xs text-gray-400">
+        <p className="mt-2 text-xs text-gray-400 dark:text-gray-500">
           Mostrando {Math.min(grade.length, MAX_LINHAS_PREVIEW)} de {grade.length} linhas e {totalColunas} de{' '}
           {maxColunasReais} colunas.
         </p>

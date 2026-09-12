@@ -28,7 +28,7 @@ export default function ErrorMessage({ kind, message, onRetry }: ErrorMessagePro
         <button
           type="button"
           onClick={onRetry}
-          className="mt-1 inline-flex items-center gap-2 rounded-md border border-amber-300 bg-white px-4 py-2 text-sm font-medium text-amber-800 transition hover:bg-amber-100"
+          className="mt-1 inline-flex items-center gap-2 rounded-md border border-amber-300 bg-white dark:bg-gray-900 px-4 py-2 text-sm font-medium text-amber-800 transition hover:bg-amber-100"
         >
           <RefreshCw className="h-4 w-4" aria-hidden="true" />
           Tentar novamente

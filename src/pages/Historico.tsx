@@ -25,25 +25,25 @@ export default function Historico() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-xl font-semibold text-gray-900">Histórico de Importações</h1>
-        <p className="text-sm text-gray-500">Planilhas semanais já processadas pelo sistema.</p>
+        <h1 className="text-xl font-semibold text-gray-900 dark:text-gray-100">Histórico de Importações</h1>
+        <p className="text-sm text-gray-500 dark:text-gray-400">Planilhas semanais já processadas pelo sistema.</p>
       </div>
 
       {historico.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-gray-300 bg-white p-8 text-center text-sm text-gray-400">
-          <FileClock className="mx-auto mb-2 h-8 w-8 text-gray-300" aria-hidden="true" />
+        <div className="rounded-xl border border-dashed border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 p-8 text-center text-sm text-gray-400 dark:text-gray-500">
+          <FileClock className="mx-auto mb-2 h-8 w-8 text-gray-300 dark:text-gray-600" aria-hidden="true" />
           Nenhuma importação registrada ainda.
         </div>
       ) : (
         <ul className="space-y-3">
           {historico.map((item) => (
-            <li key={item.id} className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+            <li key={item.id} className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-4 shadow-sm">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div>
-                  <p className="text-sm font-semibold text-gray-900">
+                  <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
                     Semana {numeroDaSemana.get(item.id)} — {new Date(item.dataImportacao).toLocaleDateString('pt-BR')}
                   </p>
-                  <p className="text-xs text-gray-500">
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
                     {item.nomeArquivo} · {formatarTamanho(item.tamanhoBytes)} · importado em{' '}
                     {new Date(item.dataImportacao).toLocaleTimeString('pt-BR')}
                   </p>
@@ -64,20 +64,20 @@ export default function Historico() {
 
               <dl className="mt-3 grid grid-cols-2 gap-3 text-sm sm:grid-cols-4">
                 <div>
-                  <dt className="text-xs text-gray-500">Escolas</dt>
-                  <dd className="font-semibold text-gray-900">{item.totalEscolas}</dd>
+                  <dt className="text-xs text-gray-500 dark:text-gray-400">Escolas</dt>
+                  <dd className="font-semibold text-gray-900 dark:text-gray-100">{item.totalEscolas}</dd>
                 </div>
                 <div>
-                  <dt className="text-xs text-gray-500">Recibos</dt>
-                  <dd className="font-semibold text-gray-900">{item.totalRecibos}</dd>
+                  <dt className="text-xs text-gray-500 dark:text-gray-400">Recibos</dt>
+                  <dd className="font-semibold text-gray-900 dark:text-gray-100">{item.totalRecibos}</dd>
                 </div>
                 <div>
-                  <dt className="text-xs text-gray-500">Com erro</dt>
-                  <dd className="font-semibold text-gray-900">{item.totalComErro}</dd>
+                  <dt className="text-xs text-gray-500 dark:text-gray-400">Com erro</dt>
+                  <dd className="font-semibold text-gray-900 dark:text-gray-100">{item.totalComErro}</dd>
                 </div>
                 <div>
-                  <dt className="text-xs text-gray-500">Duplicados</dt>
-                  <dd className="font-semibold text-gray-900">{item.totalDuplicados}</dd>
+                  <dt className="text-xs text-gray-500 dark:text-gray-400">Duplicados</dt>
+                  <dd className="font-semibold text-gray-900 dark:text-gray-100">{item.totalDuplicados}</dd>
                 </div>
               </dl>
             </li>

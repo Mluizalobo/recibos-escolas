@@ -17,30 +17,30 @@ export default function DataTable({ rows }: DataTableProps) {
   });
 
   return (
-    <div className="overflow-x-auto rounded-lg border border-gray-200">
-      <table className="min-w-full divide-y divide-gray-200 text-sm">
-        <thead className="bg-gray-50">
+    <div className="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-800">
+      <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-800 text-sm">
+        <thead className="bg-gray-50 dark:bg-gray-800">
           <tr>
             {colunas.map((coluna) => (
               <th
                 key={coluna}
                 scope="col"
-                className="whitespace-nowrap px-3 py-2 text-left font-semibold text-gray-600"
+                className="whitespace-nowrap px-3 py-2 text-left font-semibold text-gray-600 dark:text-gray-400"
               >
                 {formatLabel(coluna)}
               </th>
             ))}
           </tr>
         </thead>
-        <tbody className="divide-y divide-gray-100 bg-white">
+        <tbody className="divide-y divide-gray-100 dark:divide-gray-800 bg-white dark:bg-gray-900">
           {rows.map((row, index) => (
             <tr key={index}>
               {colunas.map((coluna) => {
                 const valor = row[coluna] as JsonValue | undefined;
                 return (
-                  <td key={coluna} className="px-3 py-2 align-top text-gray-800">
+                  <td key={coluna} className="px-3 py-2 align-top text-gray-800 dark:text-gray-200">
                     {valor === undefined ? (
-                      <span className="text-gray-300">—</span>
+                      <span className="text-gray-300 dark:text-gray-600">—</span>
                     ) : isPrimitive(valor) ? (
                       formatPrimitiveValue(valor, coluna)
                     ) : (

@@ -50,10 +50,10 @@ export default function RelatorioSemanal() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-xl font-semibold text-gray-900">Relatório Semanal</h1>
-        <p className="text-sm text-gray-500">
+        <h1 className="text-xl font-semibold text-gray-900 dark:text-gray-100">Relatório Semanal</h1>
+        <p className="text-sm text-gray-500 dark:text-gray-400">
           Panorama das entregas preparadas atualmente. Para o histórico de planilhas por semana, veja{' '}
-          <Link to="/historico" className="font-medium text-brand hover:underline">
+          <Link to="/historico" className="font-medium text-brand dark:text-green-400 hover:underline">
             Histórico
           </Link>
           .
@@ -61,67 +61,67 @@ export default function RelatorioSemanal() {
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="flex items-center gap-4 rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-          <div className="rounded-lg bg-brand-light p-3">
-            <ClipboardList className="h-6 w-6 text-brand" aria-hidden="true" />
+        <div className="flex items-center gap-4 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-5 shadow-sm">
+          <div className="rounded-lg bg-brand-light dark:bg-brand/20 p-3">
+            <ClipboardList className="h-6 w-6 text-brand dark:text-green-400" aria-hidden="true" />
           </div>
           <div>
-            <p className="text-xs text-gray-500">Recibos preparados</p>
-            <p className="text-2xl font-semibold text-gray-900">{recibos.length}</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400">Recibos preparados</p>
+            <p className="text-2xl font-semibold text-gray-900 dark:text-gray-100">{recibos.length}</p>
           </div>
         </div>
-        <div className="flex items-center gap-4 rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+        <div className="flex items-center gap-4 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-5 shadow-sm">
           <div className="rounded-lg bg-green-50 p-3">
             <Building2 className="h-6 w-6 text-green-700" aria-hidden="true" />
           </div>
           <div>
-            <p className="text-xs text-gray-500">Escolas atendidas</p>
-            <p className="text-2xl font-semibold text-gray-900">{escolasAtendidas}</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400">Escolas atendidas</p>
+            <p className="text-2xl font-semibold text-gray-900 dark:text-gray-100">{escolasAtendidas}</p>
           </div>
         </div>
-        <div className="flex items-center gap-4 rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-          <div className="rounded-lg bg-gray-100 p-3">
-            <Package className="h-6 w-6 text-gray-600" aria-hidden="true" />
+        <div className="flex items-center gap-4 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-5 shadow-sm">
+          <div className="rounded-lg bg-gray-100 dark:bg-gray-800 p-3">
+            <Package className="h-6 w-6 text-gray-600 dark:text-gray-400" aria-hidden="true" />
           </div>
           <div>
-            <p className="text-xs text-gray-500">Itens entregues</p>
-            <p className="text-2xl font-semibold text-gray-900">{totalItens}</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400">Itens entregues</p>
+            <p className="text-2xl font-semibold text-gray-900 dark:text-gray-100">{totalItens}</p>
           </div>
         </div>
-        <div className="flex items-center gap-4 rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+        <div className="flex items-center gap-4 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-5 shadow-sm">
           <div className="rounded-lg bg-amber-50 p-3">
             <AlertTriangle className="h-6 w-6 text-amber-600" aria-hidden="true" />
           </div>
           <div>
-            <p className="text-xs text-gray-500">Recibos com pendência</p>
-            <p className="text-2xl font-semibold text-gray-900">{recibosComPendencia}</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400">Recibos com pendência</p>
+            <p className="text-2xl font-semibold text-gray-900 dark:text-gray-100">{recibosComPendencia}</p>
           </div>
         </div>
       </div>
 
-      <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+      <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-5 shadow-sm">
         <div className="mb-3 flex items-center gap-2">
-          <Package className="h-4 w-4 text-gray-500" aria-hidden="true" />
-          <h2 className="text-sm font-semibold text-gray-800">Produtos mais entregues</h2>
+          <Package className="h-4 w-4 text-gray-500 dark:text-gray-400" aria-hidden="true" />
+          <h2 className="text-sm font-semibold text-gray-800 dark:text-gray-200">Produtos mais entregues</h2>
         </div>
         {produtos.length === 0 ? (
-          <p className="text-sm text-gray-400">Nenhum item entregue ainda.</p>
+          <p className="text-sm text-gray-400 dark:text-gray-500">Nenhum item entregue ainda.</p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-gray-200 text-left text-xs uppercase text-gray-500">
+                <tr className="border-b border-gray-200 dark:border-gray-800 text-left text-xs uppercase text-gray-500 dark:text-gray-400">
                   <th className="py-2 pr-3 font-medium">Produto</th>
                   <th className="py-2 pr-3 font-medium">Unidade</th>
                   <th className="py-2 font-medium">Quantidade total</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100">
+              <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
                 {produtos.slice(0, 10).map((p) => (
                   <tr key={`${p.produto}-${p.unidade}`}>
-                    <td className="py-2 pr-3 text-gray-900">{p.produto}</td>
-                    <td className="py-2 pr-3 text-gray-500">{p.unidade || '—'}</td>
-                    <td className="py-2 font-medium text-gray-900">{p.quantidade.toLocaleString('pt-BR')}</td>
+                    <td className="py-2 pr-3 text-gray-900 dark:text-gray-100">{p.produto}</td>
+                    <td className="py-2 pr-3 text-gray-500 dark:text-gray-400">{p.unidade || '—'}</td>
+                    <td className="py-2 font-medium text-gray-900 dark:text-gray-100">{p.quantidade.toLocaleString('pt-BR')}</td>
                   </tr>
                 ))}
               </tbody>
@@ -130,17 +130,17 @@ export default function RelatorioSemanal() {
         )}
       </div>
 
-      <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-        <h2 className="mb-3 text-sm font-semibold text-gray-800">Entregas por escola</h2>
+      <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-5 shadow-sm">
+        <h2 className="mb-3 text-sm font-semibold text-gray-800 dark:text-gray-200">Entregas por escola</h2>
         {recibos.length === 0 ? (
-          <p className="text-sm text-gray-400">Nenhum recibo preparado ainda.</p>
+          <p className="text-sm text-gray-400 dark:text-gray-500">Nenhum recibo preparado ainda.</p>
         ) : (
-          <ul className="divide-y divide-gray-100">
+          <ul className="divide-y divide-gray-100 dark:divide-gray-800">
             {recibos.map((recibo) => (
               <li key={recibo.id} className="flex items-center justify-between gap-3 py-2 text-sm">
-                <span className="text-gray-800">{recibo.entrega.escola.nome}</span>
+                <span className="text-gray-800 dark:text-gray-200">{recibo.entrega.escola.nome}</span>
                 <span className="flex items-center gap-3">
-                  <span className="text-xs text-gray-400">{recibo.entrega.itens.length} item(ns)</span>
+                  <span className="text-xs text-gray-400 dark:text-gray-500">{recibo.entrega.itens.length} item(ns)</span>
                   <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${STATUS_ESTILO[recibo.status]}`}>
                     {STATUS_PREPARO_LABEL[recibo.status]}
                   </span>

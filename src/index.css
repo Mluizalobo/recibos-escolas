@@ -1,5 +1,8 @@
 @import "tailwindcss";
 
+/* Modo escuro por classe (.dark no <html>), controlado manualmente via themeService.ts — não segue o tema do sistema operacional sozinho. */
+@custom-variant dark (&:where(.dark, .dark *));
+
 /*
  * Identidade visual do Grupo Líder, extraída do logotipo oficial
  * (src/assets/logo-gl-icon.png / logo-gl-lockup.png). Os componentes usam
@@ -19,6 +22,10 @@
   color-scheme: light;
 }
 
+html.dark {
+  color-scheme: dark;
+}
+
 html,
 body,
 #root {
@@ -31,6 +38,11 @@ body {
   color: #1c2129;
   font-family: 'Segoe UI', system-ui, -apple-system, Roboto, sans-serif;
   -webkit-font-smoothing: antialiased;
+}
+
+html.dark body {
+  background: #12151a;
+  color: #e5e7eb;
 }
 
 /*

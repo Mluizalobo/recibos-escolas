@@ -23,7 +23,7 @@ function Campo({
   placeholder?: string;
 }) {
   return (
-    <label className="block text-xs font-medium text-gray-600">
+    <label className="block text-xs font-medium text-gray-600 dark:text-gray-400">
       {label}
       <input
         type="text"
@@ -31,7 +31,7 @@ function Campo({
         required={required}
         placeholder={placeholder}
         onChange={(e) => onChange(e.target.value)}
-        className="mt-1 h-9 w-full rounded-md border border-gray-300 px-2.5 text-sm text-gray-800 focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand-light"
+        className="mt-1 h-9 w-full rounded-md border border-gray-300 dark:border-gray-700 px-2.5 text-sm text-gray-800 dark:text-gray-200 focus:border-brand focus:dark:border-green-600 focus:outline-none focus:ring-2 focus:ring-brand-light focus:dark:ring-green-900/40"
       />
     </label>
   );
@@ -89,12 +89,12 @@ export default function EditarEscolaCadastradaModal({
       aria-modal="true"
       aria-labelledby="titulo-editar-escola"
     >
-      <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-xl bg-white p-5 shadow-xl">
+      <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-xl bg-white dark:bg-gray-900 p-5 shadow-xl">
         <div className="mb-4 flex items-center justify-between">
-          <h2 id="titulo-editar-escola" className="text-base font-semibold text-gray-900">
+          <h2 id="titulo-editar-escola" className="text-base font-semibold text-gray-900 dark:text-gray-100">
             {escola ? 'Editar escola' : 'Nova escola'}
           </h2>
-          <button type="button" onClick={onFechar} aria-label="Fechar" className="text-gray-400 hover:text-gray-600">
+          <button type="button" onClick={onFechar} aria-label="Fechar" className="text-gray-400 dark:text-gray-500 hover:text-gray-600 hover:dark:text-gray-400">
             <X className="h-5 w-5" aria-hidden="true" />
           </button>
         </div>
@@ -102,16 +102,16 @@ export default function EditarEscolaCadastradaModal({
         <form onSubmit={handleSubmit} className="space-y-3">
           <Campo label="Nome da escola" value={nome} onChange={setNome} required />
 
-          <label className="block text-xs font-medium text-gray-600">
+          <label className="block text-xs font-medium text-gray-600 dark:text-gray-400">
             Apelidos / outras formas do nome na planilha
             <input
               type="text"
               value={apelidos}
               onChange={(e) => setApelidos(e.target.value)}
               placeholder="Ex: E.M. Alfeu Rodrigues, Alfeu Rodrigues Sede"
-              className="mt-1 h-9 w-full rounded-md border border-gray-300 px-2.5 text-sm text-gray-800 focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand-light"
+              className="mt-1 h-9 w-full rounded-md border border-gray-300 dark:border-gray-700 px-2.5 text-sm text-gray-800 dark:text-gray-200 focus:border-brand focus:dark:border-green-600 focus:outline-none focus:ring-2 focus:ring-brand-light focus:dark:ring-green-900/40"
             />
-            <span className="mt-1 block text-[11px] font-normal text-gray-400">
+            <span className="mt-1 block text-[11px] font-normal text-gray-400 dark:text-gray-500">
               Separe por vírgula. Usados para reconhecer a escola mesmo quando a planilha escreve o nome diferente.
             </span>
           </label>
@@ -140,7 +140,7 @@ export default function EditarEscolaCadastradaModal({
             <button
               type="button"
               onClick={onFechar}
-              className="rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+              className="rounded-md border border-gray-300 dark:border-gray-700 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 hover:dark:bg-gray-800"
             >
               Cancelar
             </button>

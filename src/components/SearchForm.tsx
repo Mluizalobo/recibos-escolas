@@ -47,7 +47,7 @@ export default function SearchForm({ onBuscar, loading }: SearchFormProps) {
   return (
     <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-3 sm:flex-row sm:items-end">
       <div className="flex flex-col gap-1">
-        <label htmlFor="tipo-busca" className="text-xs font-medium text-gray-600">
+        <label htmlFor="tipo-busca" className="text-xs font-medium text-gray-600 dark:text-gray-400">
           Buscar por
         </label>
         <select
@@ -55,7 +55,7 @@ export default function SearchForm({ onBuscar, loading }: SearchFormProps) {
           value={tipo}
           onChange={(e) => handleTipoChange(e.target.value as SearchType)}
           disabled={loading}
-          className="h-10 rounded-md border border-gray-300 bg-white px-3 text-sm text-gray-800 focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand-light disabled:opacity-60 sm:w-48"
+          className="h-10 rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 text-sm text-gray-800 dark:text-gray-200 focus:border-brand focus:dark:border-green-600 focus:outline-none focus:ring-2 focus:ring-brand-light focus:dark:ring-green-900/40 disabled:opacity-60 sm:w-48"
         >
           {SEARCH_TYPES.map((opcao) => (
             <option key={opcao.value} value={opcao.value}>
@@ -66,7 +66,7 @@ export default function SearchForm({ onBuscar, loading }: SearchFormProps) {
       </div>
 
       <div className="flex flex-1 flex-col gap-1">
-        <label htmlFor="valor-busca" className="text-xs font-medium text-gray-600">
+        <label htmlFor="valor-busca" className="text-xs font-medium text-gray-600 dark:text-gray-400">
           {configAtual.label}
         </label>
         <input
@@ -79,10 +79,10 @@ export default function SearchForm({ onBuscar, loading }: SearchFormProps) {
           disabled={loading}
           aria-invalid={erroValidacao ? true : undefined}
           aria-describedby={erroValidacao ? 'valor-busca-erro' : undefined}
-          className={`h-10 rounded-md border px-3 text-sm text-gray-800 focus:outline-none focus:ring-2 disabled:opacity-60 ${
+          className={`h-10 rounded-md border px-3 text-sm text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-2 disabled:opacity-60 ${
             erroValidacao
               ? 'border-red-400 focus:border-red-500 focus:ring-red-100'
-              : 'border-gray-300 focus:border-brand focus:ring-brand-light'
+              : 'border-gray-300 dark:border-gray-700 focus:border-brand focus:dark:border-green-600 focus:ring-brand-light focus:dark:ring-green-900/40'
           }`}
         />
         {erroValidacao && (

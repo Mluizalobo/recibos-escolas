@@ -191,6 +191,17 @@ retrátil no mobile: Dashboard, Consultar Entrega, Importar Planilha, Recibos
 Preparados, Escolas Cadastradas, Histórico, Relatório Semanal e Dados da
 Empresa.
 
+## Modo escuro
+
+Alternado pelo botão "Modo escuro"/"Modo claro" na barra lateral
+(`themeService.ts`), aplicado como classe `.dark` em `<html>` — a preferência
+fica salva no `localStorage` do navegador (não é dado da empresa, então não
+precisa ir para o Supabase) e é aplicada antes da página desenhar (script
+inline em `index.html`), evitando piscar claro→escuro no carregamento. O
+recibo (`ReciboTemplate.tsx`/`ReciboPreview.tsx`) fica sempre claro, mesmo
+com o modo escuro ligado — é um documento oficial que precisa imprimir/gerar
+PDF exatamente igual independente do tema da interface.
+
 ## Identidade visual
 
 O sistema usa a marca real do **Grupo Líder** (logotipo e paleta extraídos

@@ -21,14 +21,14 @@ function Campo({
   required?: boolean;
 }) {
   return (
-    <label className="block text-xs font-medium text-gray-600">
+    <label className="block text-xs font-medium text-gray-600 dark:text-gray-400">
       {label}
       <input
         type="text"
         value={value}
         required={required}
         onChange={(e) => onChange(e.target.value)}
-        className="mt-1 h-9 w-full rounded-md border border-gray-300 px-2.5 text-sm text-gray-800 focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand-light"
+        className="mt-1 h-9 w-full rounded-md border border-gray-300 dark:border-gray-700 px-2.5 text-sm text-gray-800 dark:text-gray-200 focus:border-brand focus:dark:border-green-600 focus:outline-none focus:ring-2 focus:ring-brand-light focus:dark:ring-green-900/40"
       />
     </label>
   );
@@ -70,12 +70,12 @@ export default function EditarReciboModal({ recibo, onSalvar, onFechar }: Editar
       aria-modal="true"
       aria-labelledby="titulo-editar-recibo"
     >
-      <div className="w-full max-w-md rounded-xl bg-white p-5 shadow-xl">
+      <div className="w-full max-w-md rounded-xl bg-white dark:bg-gray-900 p-5 shadow-xl">
         <div className="mb-4 flex items-center justify-between">
-          <h2 id="titulo-editar-recibo" className="text-base font-semibold text-gray-900">
+          <h2 id="titulo-editar-recibo" className="text-base font-semibold text-gray-900 dark:text-gray-100">
             Corrigir dados da escola
           </h2>
-          <button type="button" onClick={onFechar} aria-label="Fechar" className="text-gray-400 hover:text-gray-600">
+          <button type="button" onClick={onFechar} aria-label="Fechar" className="text-gray-400 dark:text-gray-500 hover:text-gray-600 hover:dark:text-gray-400">
             <X className="h-5 w-5" aria-hidden="true" />
           </button>
         </div>
@@ -105,7 +105,7 @@ export default function EditarReciboModal({ recibo, onSalvar, onFechar }: Editar
             <button
               type="button"
               onClick={onFechar}
-              className="rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+              className="rounded-md border border-gray-300 dark:border-gray-700 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 hover:dark:bg-gray-800"
             >
               Cancelar
             </button>

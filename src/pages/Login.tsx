@@ -28,16 +28,16 @@ export default function Login() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4">
-      <div className="w-full max-w-sm rounded-xl border border-gray-200 bg-white p-8 shadow-sm">
+    <div className="flex min-h-screen items-center justify-center bg-gray-50 dark:bg-gray-950 px-4">
+      <div className="w-full max-w-sm rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-8 shadow-sm">
         <div className="mb-6 flex flex-col items-center text-center">
           <Logo lockup className="h-24 w-auto" />
-          <p className="mt-2 text-sm text-gray-500">Recibos de Entrega</p>
+          <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">Recibos de Entrega</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4" noValidate>
           <div className="flex flex-col gap-1">
-            <label htmlFor="usuario" className="text-xs font-medium text-gray-600">
+            <label htmlFor="usuario" className="text-xs font-medium text-gray-600 dark:text-gray-400">
               Usuário
             </label>
             <input
@@ -47,12 +47,12 @@ export default function Login() {
               value={usuario}
               onChange={(e) => setUsuario(e.target.value)}
               required
-              className="h-10 rounded-md border border-gray-300 px-3 text-sm text-gray-800 focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand-light"
+              className="h-10 rounded-md border border-gray-300 dark:border-gray-700 px-3 text-sm text-gray-800 dark:text-gray-200 focus:border-brand focus:dark:border-green-600 focus:outline-none focus:ring-2 focus:ring-brand-light focus:dark:ring-green-900/40"
             />
           </div>
 
           <div className="flex flex-col gap-1">
-            <label htmlFor="senha" className="text-xs font-medium text-gray-600">
+            <label htmlFor="senha" className="text-xs font-medium text-gray-600 dark:text-gray-400">
               Senha
             </label>
             <input
@@ -64,7 +64,7 @@ export default function Login() {
               required
               aria-invalid={erro ? true : undefined}
               aria-describedby={erro ? 'senha-erro' : undefined}
-              className="h-10 rounded-md border border-gray-300 px-3 text-sm text-gray-800 focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand-light"
+              className="h-10 rounded-md border border-gray-300 dark:border-gray-700 px-3 text-sm text-gray-800 dark:text-gray-200 focus:border-brand focus:dark:border-green-600 focus:outline-none focus:ring-2 focus:ring-brand-light focus:dark:ring-green-900/40"
             />
           </div>
 

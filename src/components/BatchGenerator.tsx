@@ -281,11 +281,11 @@ export default function BatchGenerator() {
           id={`check-${recibo.id}`}
           checked={selecionados.has(recibo.id)}
           onChange={() => alternarSelecao(recibo.id)}
-          className="h-4 w-4 rounded border-gray-300 text-brand focus:ring-brand"
+          className="h-4 w-4 rounded border-gray-300 dark:border-gray-700 text-brand dark:text-green-400 focus:ring-brand focus:dark:ring-green-600"
         />
-        <label htmlFor={`check-${recibo.id}`} className="min-w-[10rem] flex-1 cursor-pointer text-sm text-gray-800">
+        <label htmlFor={`check-${recibo.id}`} className="min-w-[10rem] flex-1 cursor-pointer text-sm text-gray-800 dark:text-gray-200">
           {recibo.entrega.escola.nome || 'Escola não identificada'}
-          <span className="ml-2 text-xs text-gray-400">
+          <span className="ml-2 text-xs text-gray-400 dark:text-gray-500">
             {recibo.entrega.numeroPedido && recibo.entrega.numeroPedido !== '—'
               ? `Pedido ${recibo.entrega.numeroPedido}`
               : `${recibo.entrega.itens.length} item(ns)`}
@@ -299,7 +299,7 @@ export default function BatchGenerator() {
             type="button"
             onClick={() => setVisualizando(recibo)}
             aria-label={`Visualizar recibo de ${recibo.entrega.escola.nome}`}
-            className="rounded-md p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-700"
+            className="rounded-md p-2 text-gray-500 dark:text-gray-400 hover:bg-gray-100 hover:dark:bg-gray-800 hover:text-gray-700 hover:dark:text-gray-300"
           >
             <Eye className="h-4 w-4" aria-hidden="true" />
           </button>
@@ -308,7 +308,7 @@ export default function BatchGenerator() {
               type="button"
               onClick={() => setEditando(recibo)}
               aria-label={`Corrigir dados de ${recibo.entrega.escola.nome}`}
-              className="rounded-md p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-700"
+              className="rounded-md p-2 text-gray-500 dark:text-gray-400 hover:bg-gray-100 hover:dark:bg-gray-800 hover:text-gray-700 hover:dark:text-gray-300"
             >
               <Pencil className="h-4 w-4" aria-hidden="true" />
             </button>
@@ -317,7 +317,7 @@ export default function BatchGenerator() {
             type="button"
             onClick={() => handleGerarUm(recibo)}
             aria-label={`Gerar PDF de ${recibo.entrega.escola.nome}`}
-            className="rounded-md p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-700"
+            className="rounded-md p-2 text-gray-500 dark:text-gray-400 hover:bg-gray-100 hover:dark:bg-gray-800 hover:text-gray-700 hover:dark:text-gray-300"
           >
             <FileDown className="h-4 w-4" aria-hidden="true" />
           </button>
@@ -326,7 +326,7 @@ export default function BatchGenerator() {
               type="button"
               onClick={() => handleExcluir(recibo)}
               aria-label={`Excluir recibo de ${recibo.entrega.escola.nome}`}
-              className="rounded-md p-2 text-gray-500 hover:bg-red-50 hover:text-red-600"
+              className="rounded-md p-2 text-gray-500 dark:text-gray-400 hover:bg-red-50 hover:text-red-600"
             >
               <Trash2 className="h-4 w-4" aria-hidden="true" />
             </button>
@@ -339,31 +339,31 @@ export default function BatchGenerator() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-xl font-semibold text-gray-900">Recibos Preparados</h1>
-        <p className="text-sm text-gray-500">
+        <h1 className="text-xl font-semibold text-gray-900 dark:text-gray-100">Recibos Preparados</h1>
+        <p className="text-sm text-gray-500 dark:text-gray-400">
           Confira os recibos organizados a partir da planilha, corrija o que precisar e gere os PDFs. Cada planilha
           importada (uma por prefeitura) fica separada — importar uma nova não apaga as outras.
         </p>
       </div>
 
-      <div className="flex flex-col gap-3 rounded-xl border border-gray-200 bg-white p-4 shadow-sm sm:flex-row sm:items-center">
+      <div className="flex flex-col gap-3 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-4 shadow-sm sm:flex-row sm:items-center">
         <div className="relative flex-1">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" aria-hidden="true" />
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400 dark:text-gray-500" aria-hidden="true" />
           <input
             type="text"
             value={busca}
             onChange={(e) => setBusca(e.target.value)}
             placeholder="Buscar escola…"
             aria-label="Buscar escola"
-            className="h-10 w-full rounded-md border border-gray-300 pl-9 pr-3 text-sm text-gray-800 focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand-light"
+            className="h-10 w-full rounded-md border border-gray-300 dark:border-gray-700 pl-9 pr-3 text-sm text-gray-800 dark:text-gray-200 focus:border-brand focus:dark:border-green-600 focus:outline-none focus:ring-2 focus:ring-brand-light focus:dark:ring-green-900/40"
           />
         </div>
-        <label className="flex items-center gap-2 text-sm text-gray-600">
+        <label className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
           Planilha
           <select
             value={filtroPlanilha}
             onChange={(e) => setFiltroPlanilha(e.target.value)}
-            className="h-10 max-w-[16rem] rounded-md border border-gray-300 bg-white px-2 text-sm text-gray-800 focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand-light"
+            className="h-10 max-w-[16rem] rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 px-2 text-sm text-gray-800 dark:text-gray-200 focus:border-brand focus:dark:border-green-600 focus:outline-none focus:ring-2 focus:ring-brand-light focus:dark:ring-green-900/40"
           >
             <option value="todas">Todas</option>
             {planilhasDisponiveis.map((h) => (
@@ -374,12 +374,12 @@ export default function BatchGenerator() {
             {existemRecibosSemPlanilha && <option value={SEM_PLANILHA}>Sem planilha identificada</option>}
           </select>
         </label>
-        <label className="flex items-center gap-2 text-sm text-gray-600">
+        <label className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
           Status
           <select
             value={filtroStatus}
             onChange={(e) => setFiltroStatus(e.target.value as StatusPreparoRecibo | 'todos')}
-            className="h-10 rounded-md border border-gray-300 bg-white px-2 text-sm text-gray-800 focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand-light"
+            className="h-10 rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 px-2 text-sm text-gray-800 dark:text-gray-200 focus:border-brand focus:dark:border-green-600 focus:outline-none focus:ring-2 focus:ring-brand-light focus:dark:ring-green-900/40"
           >
             <option value="todos">Todos</option>
             {(Object.keys(STATUS_PREPARO_LABEL) as StatusPreparoRecibo[]).map((status) => (
@@ -391,12 +391,12 @@ export default function BatchGenerator() {
         </label>
       </div>
 
-      <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-gray-100 pb-3">
+      <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-4 shadow-sm">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-gray-100 dark:border-gray-800 pb-3">
           <button
             type="button"
             onClick={alternarTodos}
-            className="inline-flex items-center gap-2 text-sm font-medium text-brand hover:underline"
+            className="inline-flex items-center gap-2 text-sm font-medium text-brand dark:text-green-400 hover:underline"
           >
             {recibosFiltrados.length > 0 && recibosFiltrados.every((r) => selecionados.has(r.id)) ? (
               <CheckSquare className="h-4 w-4" aria-hidden="true" />
@@ -407,24 +407,24 @@ export default function BatchGenerator() {
               ? 'Desmarcar todos'
               : 'Selecionar todos'}
           </button>
-          <span className="text-xs text-gray-500">
+          <span className="text-xs text-gray-500 dark:text-gray-400">
             {selecionados.size} de {recibosFiltrados.length} selecionados
           </span>
         </div>
 
         {carregando ? (
-          <p className="py-6 text-center text-sm text-gray-400">Carregando…</p>
+          <p className="py-6 text-center text-sm text-gray-400 dark:text-gray-500">Carregando…</p>
         ) : recibosFiltrados.length === 0 ? (
-          <p className="py-6 text-center text-sm text-gray-400">Nenhum recibo encontrado.</p>
+          <p className="py-6 text-center text-sm text-gray-400 dark:text-gray-500">Nenhum recibo encontrado.</p>
         ) : filtroPlanilha !== 'todas' ? (
-          <ul className="divide-y divide-gray-100">{recibosFiltrados.map(linhaRecibo)}</ul>
+          <ul className="divide-y divide-gray-100 dark:divide-gray-800">{recibosFiltrados.map(linhaRecibo)}</ul>
         ) : (
           <div className="space-y-5">
             {grupos.map((grupo) => (
               <div key={grupo.chave}>
                 <div className="mb-1 flex items-center justify-between gap-2 pt-2">
-                  <h2 className="text-sm font-semibold text-gray-700">
-                    {grupo.titulo} <span className="font-normal text-gray-400">({grupo.recibos.length})</span>
+                  <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+                    {grupo.titulo} <span className="font-normal text-gray-400 dark:text-gray-500">({grupo.recibos.length})</span>
                   </h2>
                   {grupo.historico && (
                     <button
@@ -436,7 +436,7 @@ export default function BatchGenerator() {
                     </button>
                   )}
                 </div>
-                <ul className="divide-y divide-gray-100 border-t border-gray-100">
+                <ul className="divide-y divide-gray-100 dark:divide-gray-800 border-t border-gray-100 dark:border-gray-800">
                   {grupo.recibos.map(linhaRecibo)}
                 </ul>
               </div>
@@ -445,26 +445,26 @@ export default function BatchGenerator() {
         )}
       </div>
 
-      <div className="flex flex-wrap items-center gap-4 rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+      <div className="flex flex-wrap items-center gap-4 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-4 shadow-sm">
         <fieldset className="flex flex-wrap gap-4">
-          <legend className="mb-2 w-full text-xs font-semibold uppercase text-gray-500">Formato de saída</legend>
-          <label className="flex items-center gap-2 text-sm text-gray-700">
+          <legend className="mb-2 w-full text-xs font-semibold uppercase text-gray-500 dark:text-gray-400">Formato de saída</legend>
+          <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
             <input
               type="radio"
               name="modo-lote"
               checked={modo === 'individual'}
               onChange={() => setModo('individual')}
-              className="h-4 w-4 text-brand focus:ring-brand"
+              className="h-4 w-4 text-brand dark:text-green-400 focus:ring-brand focus:dark:ring-green-600"
             />
             Um PDF por escola
           </label>
-          <label className="flex items-center gap-2 text-sm text-gray-700">
+          <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
             <input
               type="radio"
               name="modo-lote"
               checked={modo === 'unico'}
               onChange={() => setModo('unico')}
-              className="h-4 w-4 text-brand focus:ring-brand"
+              className="h-4 w-4 text-brand dark:text-green-400 focus:ring-brand focus:dark:ring-green-600"
             />
             Um único PDF com todos
           </label>

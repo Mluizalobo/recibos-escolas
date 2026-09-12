@@ -24,72 +24,72 @@ export default function Dashboard() {
   return (
     <div className="space-y-8">
       <div>
-        <p className="text-sm font-medium text-brand">{EMPRESA.nome}</p>
-        <h1 className="text-2xl font-semibold text-gray-900">Recibos de Entrega</h1>
-        <p className="mt-1 max-w-2xl text-sm text-gray-500">
+        <p className="text-sm font-medium text-brand dark:text-green-400">{EMPRESA.nome}</p>
+        <h1 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">Recibos de Entrega</h1>
+        <p className="mt-1 max-w-2xl text-sm text-gray-500 dark:text-gray-400">
           Substitui o processo manual de copiar dados da planilha para o Word: consulte a escola, confira os
           dados e gere o recibo em PDF pronto para impressão.
         </p>
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <div className="flex items-center gap-4 rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-          <div className="rounded-lg bg-brand-light p-3">
-            <Package className="h-6 w-6 text-brand" aria-hidden="true" />
+        <div className="flex items-center gap-4 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-5 shadow-sm">
+          <div className="rounded-lg bg-brand-light dark:bg-brand/20 p-3">
+            <Package className="h-6 w-6 text-brand dark:text-green-400" aria-hidden="true" />
           </div>
           <div>
-            <p className="text-xs text-gray-500">Entregas disponíveis</p>
-            <p className="text-2xl font-semibold text-gray-900">{totalEntregas ?? '—'}</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400">Entregas disponíveis</p>
+            <p className="text-2xl font-semibold text-gray-900 dark:text-gray-100">{totalEntregas ?? '—'}</p>
           </div>
         </div>
         <Link
           to="/escolas"
-          className="flex items-center gap-4 rounded-xl border border-gray-200 bg-white p-5 shadow-sm transition hover:border-brand/60 hover:shadow-md"
+          className="flex items-center gap-4 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-5 shadow-sm transition hover:border-brand/60 hover:dark:border-green-700/60 hover:shadow-md"
         >
           <div className="rounded-lg bg-green-50 p-3">
             <Building2 className="h-6 w-6 text-green-700" aria-hidden="true" />
           </div>
           <div>
-            <p className="text-xs text-gray-500">Escolas cadastradas</p>
-            <p className="text-2xl font-semibold text-gray-900">{totalEscolasCadastradas ?? '—'}</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400">Escolas cadastradas</p>
+            <p className="text-2xl font-semibold text-gray-900 dark:text-gray-100">{totalEscolasCadastradas ?? '—'}</p>
           </div>
         </Link>
       </div>
 
       <div>
-        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-gray-500">Atalhos</h2>
+        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Atalhos</h2>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <Link
             to="/consulta"
-            className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm transition hover:border-brand/60 hover:shadow-md"
+            className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-5 shadow-sm transition hover:border-brand/60 hover:dark:border-green-700/60 hover:shadow-md"
           >
-            <Search className="h-6 w-6 text-brand" aria-hidden="true" />
-            <p className="mt-3 text-sm font-semibold text-gray-900">Consultar escola</p>
-            <p className="mt-1 text-xs text-gray-500">Localize uma entrega e gere o recibo.</p>
+            <Search className="h-6 w-6 text-brand dark:text-green-400" aria-hidden="true" />
+            <p className="mt-3 text-sm font-semibold text-gray-900 dark:text-gray-100">Consultar escola</p>
+            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">Localize uma entrega e gere o recibo.</p>
           </Link>
           <Link
             to="/importacao"
-            className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm transition hover:border-brand/60 hover:shadow-md"
+            className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-5 shadow-sm transition hover:border-brand/60 hover:dark:border-green-700/60 hover:shadow-md"
           >
-            <UploadCloud className="h-6 w-6 text-brand" aria-hidden="true" />
-            <p className="mt-3 text-sm font-semibold text-gray-900">Importar planilha</p>
-            <p className="mt-1 text-xs text-gray-500">Carregue a planilha semanal de entregas.</p>
+            <UploadCloud className="h-6 w-6 text-brand dark:text-green-400" aria-hidden="true" />
+            <p className="mt-3 text-sm font-semibold text-gray-900 dark:text-gray-100">Importar planilha</p>
+            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">Carregue a planilha semanal de entregas.</p>
           </Link>
           <Link
             to="/lote"
-            className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm transition hover:border-brand/60 hover:shadow-md"
+            className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-5 shadow-sm transition hover:border-brand/60 hover:dark:border-green-700/60 hover:shadow-md"
           >
-            <Layers className="h-6 w-6 text-brand" aria-hidden="true" />
-            <p className="mt-3 text-sm font-semibold text-gray-900">Recibos preparados</p>
-            <p className="mt-1 text-xs text-gray-500">Confira, corrija e gere os recibos em lote.</p>
+            <Layers className="h-6 w-6 text-brand dark:text-green-400" aria-hidden="true" />
+            <p className="mt-3 text-sm font-semibold text-gray-900 dark:text-gray-100">Recibos preparados</p>
+            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">Confira, corrija e gere os recibos em lote.</p>
           </Link>
           <Link
             to="/historico"
-            className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm transition hover:border-brand/60 hover:shadow-md"
+            className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-5 shadow-sm transition hover:border-brand/60 hover:dark:border-green-700/60 hover:shadow-md"
           >
-            <FileClock className="h-6 w-6 text-brand" aria-hidden="true" />
-            <p className="mt-3 text-sm font-semibold text-gray-900">Histórico</p>
-            <p className="mt-1 text-xs text-gray-500">Veja as planilhas semanais já importadas.</p>
+            <FileClock className="h-6 w-6 text-brand dark:text-green-400" aria-hidden="true" />
+            <p className="mt-3 text-sm font-semibold text-gray-900 dark:text-gray-100">Histórico</p>
+            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">Veja as planilhas semanais já importadas.</p>
           </Link>
         </div>
       </div>
