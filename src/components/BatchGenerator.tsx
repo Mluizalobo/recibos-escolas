@@ -5,6 +5,7 @@ import {
   corrigirRecibo,
   listarRecibosPreparados,
   removerRecibo,
+  removerRecibos,
   type DadosCorrecaoRecibo,
 } from '../services/recibosStore';
 import { listarHistorico, removerImportacao } from '../services/historyService';
@@ -142,6 +143,18 @@ export default function BatchGenerator() {
     return ordenados;
   }, [recibosFiltrados, historico]);
 
+  /** Representa a planilha selecionada no filtro (quando não é "todas"), pra reaproveitar o mesmo botão de excluir planilha/lote da visão agrupada. */
+  const grupoAtivo = useMemo<GrupoPlanilha | null>(() => {
+    if (filtroPlanilha === 'todas') return null;
+    const historicoAtivo = filtroPlanilha === SEM_PLANILHA ? null : (historico.find((h) => h.id === filtroPlanilha) ?? null);
+    return {
+      chave: filtroPlanilha,
+      titulo: historicoAtivo ? rotuloPlanilha(historicoAtivo) : 'Sem planilha identificada',
+      historico: historicoAtivo,
+      recibos: recibosFiltrados,
+    };
+  }, [filtroPlanilha, historico, recibosFiltrados]);
+
   function alternarSelecao(id: string) {
     setSelecionados((atual) => {
       const novo = new Set(atual);
@@ -243,16 +256,23 @@ export default function BatchGenerator() {
   }
 
   async function handleExcluirPlanilha(grupo: GrupoPlanilha) {
-    if (!grupo.historico) return;
+    if (grupo.recibos.length === 0) return;
     const confirmado = window.confirm(
-      `Excluir a planilha "${grupo.titulo}" inteira? Isso remove os ${grupo.recibos.length} recibo(s) dela. Essa ação não pode ser desfeita.`,
+      `Excluir "${grupo.titulo}"? Isso remove os ${grupo.recibos.length} recibo(s) dela. Essa ação não pode ser desfeita.`,
     );
     if (!confirmado) return;
 
     setErro(null);
     try {
-      await removerImportacao(grupo.historico.id);
-      if (filtroPlanilha === grupo.historico.id) setFiltroPlanilha('todas');
+      if (grupo.historico) {
+        // Apaga a linha do histórico — os recibos dela somem junto (on delete cascade).
+        await removerImportacao(grupo.historico.id);
+      } else {
+        // Sem histórico associado (ex: planilha importada antes de existir essa
+        // ligação) — apaga os recibos diretamente, um a um não seria prático.
+        await removerRecibos(grupo.recibos.map((r) => r.id));
+      }
+      if (filtroPlanilha === grupo.chave) setFiltroPlanilha('todas');
       await recarregar();
     } catch {
       setErro('Não foi possível excluir a planilha. Tente novamente.');
@@ -417,7 +437,20 @@ export default function BatchGenerator() {
         ) : recibosFiltrados.length === 0 ? (
           <p className="py-6 text-center text-sm text-gray-400 dark:text-gray-500">Nenhum recibo encontrado.</p>
         ) : filtroPlanilha !== 'todas' ? (
-          <ul className="divide-y divide-gray-100 dark:divide-gray-800">{recibosFiltrados.map(linhaRecibo)}</ul>
+          <div>
+            {grupoAtivo && (
+              <div className="mb-2 flex items-center justify-end gap-2 border-b border-gray-100 dark:border-gray-800 pb-2">
+                <button
+                  type="button"
+                  onClick={() => handleExcluirPlanilha(grupoAtivo)}
+                  className="text-xs font-medium text-red-600 hover:underline"
+                >
+                  {grupoAtivo.historico ? 'Excluir esta planilha' : 'Excluir estes recibos'}
+                </button>
+              </div>
+            )}
+            <ul className="divide-y divide-gray-100 dark:divide-gray-800">{recibosFiltrados.map(linhaRecibo)}</ul>
+          </div>
         ) : (
           <div className="space-y-5">
             {grupos.map((grupo) => (
@@ -426,15 +459,13 @@ export default function BatchGenerator() {
                   <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300">
                     {grupo.titulo} <span className="font-normal text-gray-400 dark:text-gray-500">({grupo.recibos.length})</span>
                   </h2>
-                  {grupo.historico && (
-                    <button
-                      type="button"
-                      onClick={() => handleExcluirPlanilha(grupo)}
-                      className="text-xs font-medium text-red-600 hover:underline"
-                    >
-                      Excluir esta planilha
-                    </button>
-                  )}
+                  <button
+                    type="button"
+                    onClick={() => handleExcluirPlanilha(grupo)}
+                    className="text-xs font-medium text-red-600 hover:underline"
+                  >
+                    {grupo.historico ? 'Excluir esta planilha' : 'Excluir estes recibos'}
+                  </button>
                 </div>
                 <ul className="divide-y divide-gray-100 dark:divide-gray-800 border-t border-gray-100 dark:border-gray-800">
                   {grupo.recibos.map(linhaRecibo)}

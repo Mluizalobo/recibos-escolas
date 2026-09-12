@@ -70,6 +70,19 @@ export async function removerRecibo(id: string): Promise<void> {
   if (error) throw error;
 }
 
+/**
+ * Exclui vários recibos de uma vez pelo id — usado para limpar de uma tacada
+ * só um grupo de recibos que não têm planilha associada no histórico (ex:
+ * recibos importados antes de existir a coluna importacao_id). Para excluir
+ * uma planilha que tem histórico, prefira `historyService.removerImportacao`
+ * (que já leva os recibos dela junto, via "on delete cascade").
+ */
+export async function removerRecibos(ids: string[]): Promise<void> {
+  if (ids.length === 0) return;
+  const { error } = await supabase.from('recibos_preparados').delete().in('id', ids);
+  if (error) throw error;
+}
+
 export interface DadosCorrecaoRecibo {
   nome: string;
   codigoEscola: string;
