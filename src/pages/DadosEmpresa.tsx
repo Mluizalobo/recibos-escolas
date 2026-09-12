@@ -6,9 +6,9 @@ function Campo({ icone: Icone, label, valor }: { icone: typeof Building2; label:
   return (
     <div className="flex items-start gap-3 border-b border-gray-100 dark:border-gray-800 py-3 last:border-0">
       <Icone className="mt-0.5 h-4 w-4 shrink-0 text-gray-400 dark:text-gray-500" aria-hidden="true" />
-      <div>
+      <div className="min-w-0">
         <dt className="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">{label}</dt>
-        <dd className="text-sm text-gray-900 dark:text-gray-100">{valor && valor.trim() ? valor : '—'}</dd>
+        <dd className="break-words text-sm text-gray-900 dark:text-gray-100">{valor && valor.trim() ? valor : '—'}</dd>
       </div>
     </div>
   );

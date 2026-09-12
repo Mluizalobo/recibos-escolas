@@ -33,7 +33,7 @@ function RotaProtegida({ children }: { children: ReactNode }) {
   }
 
   return (
-    <div className="flex min-h-screen bg-gray-50 dark:bg-gray-950">
+    <div className="flex min-h-screen flex-col bg-gray-50 dark:bg-gray-950 sm:flex-row">
       <Sidebar links={LINKS} sessao={sessao} />
       <main className="min-w-0 flex-1 px-4 py-6 sm:px-8">{children}</main>
     </div>
