@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { CheckSquare, Eye, FileDown, Pencil, Search, Square, Trash2 } from 'lucide-react';
+import { CheckSquare, Eye, FileDown, Pencil, Search, Share2, Square, Trash2 } from 'lucide-react';
 import {
   atualizarStatusRecibo,
   corrigirRecibo,
@@ -10,7 +10,13 @@ import {
 } from '../services/recibosStore';
 import { listarHistorico, removerImportacao } from '../services/historyService';
 import { EMPRESA } from '../services/api';
-import { gerarPdfRecibo, gerarPdfUnicoComVarios, nomeArquivoRecibo } from '../services/pdfService';
+import {
+  compartilharRecibos,
+  gerarPdfRecibo,
+  gerarPdfUnicoComVarios,
+  nomeArquivoRecibo,
+  suportaCompartilharArquivo,
+} from '../services/pdfService';
 import {
   STATUS_PREPARO_LABEL,
   type ImportacaoHistorico,
@@ -72,12 +78,14 @@ export default function BatchGenerator() {
   const [filtroStatus, setFiltroStatus] = useState<StatusPreparoRecibo | 'todos'>('todos');
   const [filtroPlanilha, setFiltroPlanilha] = useState('todas');
   const [gerando, setGerando] = useState(false);
+  const [compartilhando, setCompartilhando] = useState<string | 'lote' | null>(null);
   const [erro, setErro] = useState<string | null>(null);
   const [progresso, setProgresso] = useState<{ atual: number; total: number } | null>(null);
   const [editando, setEditando] = useState<ReciboPreparado | null>(null);
   const [visualizando, setVisualizando] = useState<ReciboPreparado | null>(null);
 
   const refsRecibos = useRef<Record<string, HTMLDivElement | null>>({});
+  const podeCompartilhar = useMemo(() => suportaCompartilharArquivo(), []);
 
   async function recarregar() {
     try {
@@ -187,6 +195,27 @@ export default function BatchGenerator() {
     }
   }
 
+  async function handleCompartilharUm(recibo: ReciboPreparado) {
+    const elemento = refsRecibos.current[recibo.id];
+    if (!elemento || compartilhando) return;
+    setErro(null);
+    setCompartilhando(recibo.id);
+    try {
+      await compartilharRecibos(
+        [[elemento]],
+        [nomeArquivoRecibo(recibo.entrega.escola.nome, recibo.entrega.dataEntrega)],
+      );
+      await marcarGerado(recibo.id);
+      await recarregar();
+    } catch (err) {
+      if ((err as Error)?.name !== 'AbortError') {
+        setErro('Não foi possível compartilhar este recibo.');
+      }
+    } finally {
+      setCompartilhando(null);
+    }
+  }
+
   async function handleGerarSelecionados() {
     if (selecionados.size === 0 || gerando) return;
     setGerando(true);
@@ -219,6 +248,41 @@ export default function BatchGenerator() {
     } finally {
       setGerando(false);
       setProgresso(null);
+    }
+  }
+
+  async function handleCompartilharSelecionados() {
+    if (selecionados.size === 0 || compartilhando) return;
+    setErro(null);
+    setCompartilhando('lote');
+
+    const selecionadas = recibos.filter((r) => selecionados.has(r.id));
+
+    try {
+      if (modo === 'individual') {
+        const grupos: HTMLElement[][] = [];
+        const nomes: string[] = [];
+        for (const recibo of selecionadas) {
+          const elemento = refsRecibos.current[recibo.id];
+          if (!elemento) continue;
+          grupos.push([elemento]);
+          nomes.push(nomeArquivoRecibo(recibo.entrega.escola.nome, recibo.entrega.dataEntrega));
+        }
+        await compartilharRecibos(grupos, nomes);
+      } else {
+        const elementos = selecionadas
+          .map((recibo) => refsRecibos.current[recibo.id])
+          .filter((el): el is HTMLDivElement => !!el);
+        await compartilharRecibos([elementos], ['recibos_entrega_lote.pdf']);
+      }
+      await Promise.all(selecionadas.map((recibo) => marcarGerado(recibo.id)));
+      await recarregar();
+    } catch (err) {
+      if ((err as Error)?.name !== 'AbortError') {
+        setErro('Não foi possível compartilhar os recibos.');
+      }
+    } finally {
+      setCompartilhando(null);
     }
   }
 
@@ -341,6 +405,17 @@ export default function BatchGenerator() {
           >
             <FileDown className="h-4 w-4" aria-hidden="true" />
           </button>
+          {podeCompartilhar && (
+            <button
+              type="button"
+              onClick={() => handleCompartilharUm(recibo)}
+              disabled={compartilhando === recibo.id}
+              aria-label={`Compartilhar recibo de ${recibo.entrega.escola.nome}`}
+              className="rounded-md p-2 text-gray-500 dark:text-gray-400 hover:bg-gray-100 hover:dark:bg-gray-800 hover:text-gray-700 hover:dark:text-gray-300 disabled:opacity-50"
+            >
+              <Share2 className="h-4 w-4" aria-hidden="true" />
+            </button>
+          )}
           {recibo.origem === 'importacao' && (
             <button
               type="button"
@@ -501,15 +576,28 @@ export default function BatchGenerator() {
           </label>
         </fieldset>
 
-        <button
-          type="button"
-          onClick={handleGerarSelecionados}
-          disabled={selecionados.size === 0 || gerando}
-          className="ml-auto inline-flex items-center gap-2 rounded-md bg-brand px-5 py-2.5 text-sm font-medium text-white transition hover:bg-brand-dark disabled:cursor-not-allowed disabled:opacity-60"
-        >
-          <FileDown className="h-4 w-4" aria-hidden="true" />
-          {gerando ? `Gerando${progresso ? ` (${progresso.atual}/${progresso.total})` : '…'}` : 'Gerar Recibos Selecionados'}
-        </button>
+        <div className="ml-auto flex flex-wrap items-center gap-2">
+          {podeCompartilhar && (
+            <button
+              type="button"
+              onClick={handleCompartilharSelecionados}
+              disabled={selecionados.size === 0 || compartilhando !== null}
+              className="inline-flex items-center gap-2 rounded-md border border-brand px-5 py-2.5 text-sm font-medium text-brand transition hover:bg-brand-light disabled:cursor-not-allowed disabled:opacity-60 dark:border-green-600 dark:text-green-400 dark:hover:bg-brand/20"
+            >
+              <Share2 className="h-4 w-4" aria-hidden="true" />
+              {compartilhando === 'lote' ? 'Compartilhando…' : 'Compartilhar Selecionados'}
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={handleGerarSelecionados}
+            disabled={selecionados.size === 0 || gerando}
+            className="inline-flex items-center gap-2 rounded-md bg-brand px-5 py-2.5 text-sm font-medium text-white transition hover:bg-brand-dark disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            <FileDown className="h-4 w-4" aria-hidden="true" />
+            {gerando ? `Gerando${progresso ? ` (${progresso.atual}/${progresso.total})` : '…'}` : 'Gerar Recibos Selecionados'}
+          </button>
+        </div>
       </div>
 
       {erro && (
