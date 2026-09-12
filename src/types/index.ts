@@ -62,6 +62,25 @@ export interface Escola {
   horarioFuncionamento?: string | null;
 }
 
+/**
+ * Escola cadastrada manualmente pelo usuário, servindo de base de dados
+ * própria da empresa. Ao importar a planilha semanal, o sistema tenta casar
+ * o nome livre de cada linha com uma escola cadastrada (por nome ou por um
+ * dos apelidos) e preenche automaticamente o que a planilha não traz
+ * (endereço, código, CNPJ, horário) — a planilha nunca sobrescreve um dado
+ * já preenchido, só completa o que estiver vazio.
+ */
+export interface EscolaCadastrada {
+  id: string;
+  nome: string;
+  /** Outras formas como o nome aparece na planilha real (abreviação, apelido, "SEDE"/"ANEXO" etc.), usadas no casamento automático. */
+  apelidos: string[];
+  codigoEscola?: string;
+  cnpj?: string;
+  endereco: Endereco;
+  horarioFuncionamento?: string | null;
+}
+
 export interface Entrega {
   codigoEntrega: string;
   numeroPedido: string;

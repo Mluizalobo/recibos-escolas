@@ -11,6 +11,7 @@ import type {
   StatusPreparoRecibo,
 } from '../types';
 import { gerarHash } from '../utils/hash';
+import { encontrarEscolaCadastrada } from './escolasStore';
 
 function comoTexto(valor: unknown): string | undefined {
   if (valor === null || valor === undefined || valor === '') return undefined;
@@ -38,6 +39,25 @@ function adicionarObservacao(entrega: Entrega, mensagem: string): void {
   if (!atuais.includes(mensagem)) {
     entrega.observacoes = [...atuais, mensagem];
   }
+}
+
+/**
+ * Casa o nome da escola (por nome ou apelido) com o cadastro próprio da
+ * empresa e completa o que a planilha não trouxe — endereço, código, CNPJ,
+ * horário. Nunca sobrescreve um dado que a planilha já informou; só
+ * preenche o que está vazio. Retorna true quando achou correspondência.
+ */
+function aplicarCadastro(escola: Escola): boolean {
+  const cadastro = encontrarEscolaCadastrada(escola.nome);
+  if (!cadastro) return false;
+
+  if (!escola.codigoEscola && cadastro.codigoEscola) escola.codigoEscola = cadastro.codigoEscola;
+  if (!escola.cnpj && cadastro.cnpj) escola.cnpj = cadastro.cnpj;
+  if (!escola.endereco.rua) escola.endereco = { ...cadastro.endereco };
+  if (!escola.horarioFuncionamento && cadastro.horarioFuncionamento) {
+    escola.horarioFuncionamento = cadastro.horarioFuncionamento;
+  }
+  return true;
 }
 
 // =====================================================================
@@ -218,6 +238,8 @@ function normalizarTabela(linhas: PlanilhaLinha[]): ResultadoImportacao {
       horarioFuncionamento: comoTexto(linha.horarioFuncionamento) ?? null,
     };
 
+    const encontradaNoCadastro = aplicarCadastro(escola);
+
     let grupo = grupos.get(chave);
     if (!grupo) {
       grupo = {
@@ -251,6 +273,14 @@ function normalizarTabela(linhas: PlanilhaLinha[]): ResultadoImportacao {
           severidade: 'aviso',
         });
         adicionarObservacao(grupo.entrega, 'Horário de funcionamento não informado nesta planilha.');
+      }
+
+      if (!encontradaNoCadastro) {
+        grupo.problemas.push({
+          campo: 'cadastro',
+          mensagem: `"${nomeEscola}" não está no cadastro de escolas — cadastre em "Escolas Cadastradas" para preencher endereço/horário automaticamente nas próximas importações.`,
+          severidade: 'aviso',
+        });
       }
     }
 
@@ -470,25 +500,45 @@ function normalizarMatriz(grade: PlanilhaGrade, blocos: BlocoMatriz[]): Resultad
         }
       }
 
+      const escola: Escola = {
+        codigoEscola: '',
+        nome,
+        cnpj: '',
+        endereco: { rua: '', numero: '', bairro: null, cidade: municipio ?? '', uf: null, cep: null },
+        horarioFuncionamento,
+      };
+      const encontradaNoCadastro = aplicarCadastro(escola);
+
       // Dado ausente nunca bloqueia a geração do recibo: cada situação vira
       // um aviso (para conferência) e uma observação impressa no próprio
       // recibo — o recibo é sempre gerado, nunca fica travado como "erro".
-      const problemas: ProblemaRecibo[] = [
-        {
+      const problemas: ProblemaRecibo[] = [];
+      const observacoes: string[] = [];
+
+      if (!escola.endereco.rua) {
+        problemas.push({
           campo: 'endereco',
           mensagem: `Endereço não informado para "${nome}" — a planilha não traz esse dado, só o nome da escola.`,
           severidade: 'aviso',
-        },
-      ];
-      const observacoes: string[] = ['Endereço não informado nesta planilha.'];
+        });
+        observacoes.push('Endereço não informado nesta planilha.');
+      }
 
-      if (!horarioFuncionamento) {
+      if (!escola.horarioFuncionamento) {
         problemas.push({
           campo: 'horarioFuncionamento',
           mensagem: `Horário de funcionamento não informado para "${nome}".`,
           severidade: 'aviso',
         });
         observacoes.push('Horário de funcionamento não informado nesta planilha.');
+      }
+
+      if (!encontradaNoCadastro) {
+        problemas.push({
+          campo: 'cadastro',
+          mensagem: `"${nome}" não está no cadastro de escolas — cadastre em "Escolas Cadastradas" para preencher endereço/horário automaticamente nas próximas importações.`,
+          severidade: 'aviso',
+        });
       }
 
       if (numeroLista) {
@@ -513,13 +563,7 @@ function normalizarMatriz(grade: PlanilhaGrade, blocos: BlocoMatriz[]): Resultad
         numeroPedido: numeroLista ?? '',
         dataEntrega: bloco.dataIso ?? '',
         status: 'pendente',
-        escola: {
-          codigoEscola: '',
-          nome,
-          cnpj: '',
-          endereco: { rua: '', numero: '', bairro: null, cidade: municipio ?? '', uf: null, cep: null },
-          horarioFuncionamento,
-        },
+        escola,
         itens,
         observacoes,
         responsavelRecebimento: null,

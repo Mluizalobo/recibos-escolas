@@ -1,12 +1,13 @@
 import { type ReactNode } from 'react';
 import { HashRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom';
-import { Building2, FileClock, LayoutDashboard, Layers, Search, TrendingUp, UploadCloud } from 'lucide-react';
+import { Building2, FileClock, LayoutDashboard, Layers, School, Search, TrendingUp, UploadCloud } from 'lucide-react';
 import Dashboard from './pages/Dashboard';
 import Consulta from './pages/Consulta';
 import Importacao from './pages/Importacao';
 import Historico from './pages/Historico';
 import DadosEmpresa from './pages/DadosEmpresa';
 import RelatorioSemanal from './pages/RelatorioSemanal';
+import EscolasCadastradas from './pages/EscolasCadastradas';
 import Login from './pages/Login';
 import BatchGenerator from './components/BatchGenerator';
 import Sidebar, { type LinkSidebar } from './components/Sidebar';
@@ -17,6 +18,7 @@ const LINKS: LinkSidebar[] = [
   { to: '/consulta', label: 'Consultar Entrega', icon: Search },
   { to: '/importacao', label: 'Importar Planilha', icon: UploadCloud },
   { to: '/lote', label: 'Recibos Preparados', icon: Layers },
+  { to: '/escolas', label: 'Escolas Cadastradas', icon: School },
   { to: '/historico', label: 'Histórico', icon: FileClock },
   { to: '/relatorio', label: 'Relatório Semanal', icon: TrendingUp },
   { to: '/empresa', label: 'Dados da Empresa', icon: Building2 },
@@ -72,6 +74,14 @@ export default function App() {
           element={
             <RotaProtegida>
               <BatchGenerator />
+            </RotaProtegida>
+          }
+        />
+        <Route
+          path="/escolas"
+          element={
+            <RotaProtegida>
+              <EscolasCadastradas />
             </RotaProtegida>
           }
         />
