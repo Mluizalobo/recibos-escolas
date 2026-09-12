@@ -141,16 +141,16 @@ export interface ProblemaRecibo {
 }
 
 /**
- * Um recibo "preparado" pelo sistema a partir da planilha (ou de um mock de
- * demonstração), pronto para ser conferido e gerado pelo usuário — que atua
- * como conferente, não como digitador.
+ * Um recibo "preparado" pelo sistema a partir da planilha, pronto para ser
+ * conferido e gerado pelo usuário — que atua como conferente, não como
+ * digitador.
  */
 export interface ReciboPreparado {
   id: string;
   entrega: Entrega;
   status: StatusPreparoRecibo;
   problemas: ProblemaRecibo[];
-  origem: 'importacao' | 'mock';
+  origem: 'importacao';
 }
 
 /** Um registro do histórico de importações semanais da planilha. */

@@ -2,80 +2,6 @@ import type { Entrega, ProblemaRecibo, ReciboPreparado, StatusPreparoRecibo } fr
 
 const CHAVE_LOCALSTORAGE = 'recibos-escolas:recibos-importados';
 
-/**
- * Demonstração com o formato canônico de Entrega (o mesmo que normalizeSpreadsheetData
- * produz a partir da planilha). Propositalmente separado dos mocks genéricos de
- * mockData.ts, que existem para provar o DynamicDataRenderer com JSONs heterogêneos —
- * aqui o recibo já segue a estrutura oficial usada pelo ReciboTemplate.
- */
-const RECIBOS_DEMONSTRACAO: Entrega[] = [
-  {
-    codigoEntrega: 'ENT-2026-012',
-    numeroPedido: '12',
-    dataEntrega: '2026-07-02',
-    status: 'entregue',
-    escola: {
-      codigoEscola: 'ESC-001',
-      nome: 'E.M. Alfeu Rodrigues',
-      cnpj: '',
-      endereco: {
-        rua: 'Rodovia dos Bandeirantes LMG 808, Km 17,5 — S/N',
-        numero: '',
-        bairro: 'Chácaras das Esmeraldas',
-        cidade: 'Esmeraldas',
-        uf: 'MG',
-      },
-      horarioFuncionamento: '07h às 12h',
-    },
-    itens: [
-      { produto: 'Alho Descascado', unidade: 'KG', quantidade: 1 },
-      { produto: 'Cebola', unidade: 'KG', quantidade: 4 },
-      { produto: 'Cenoura', unidade: 'KG', quantidade: 4 },
-      { produto: 'Batata', unidade: 'KG', quantidade: 4 },
-      { produto: 'Tomate', unidade: 'KG', quantidade: 4 },
-      { produto: 'Batata Doce', unidade: 'KG', quantidade: 2 },
-      { produto: 'Repolho Verde', unidade: 'KG', quantidade: 3 },
-      { produto: 'Ovos Vermelhos', unidade: 'DZ', quantidade: 4 },
-      { produto: 'Maçã', unidade: 'KG', quantidade: 10 },
-      { produto: 'Banana', unidade: 'KG', quantidade: 10 },
-      { produto: 'Laranja', unidade: 'KG', quantidade: 6 },
-    ],
-    observacoes: null,
-    responsavelRecebimento: null,
-  },
-  {
-    codigoEntrega: 'ENT-2026-013',
-    numeroPedido: '13',
-    dataEntrega: '2026-07-02',
-    status: 'entregue',
-    escola: {
-      codigoEscola: 'ESC-002',
-      nome: 'E.M. Maria Souza',
-      cnpj: '',
-      endereco: { rua: 'Rua Principal, S/N', numero: '', bairro: 'Centro', cidade: 'Esmeraldas', uf: 'MG' },
-      horarioFuncionamento: '07h às 13h',
-    },
-    itens: [
-      { produto: 'Feijão Carioca', unidade: 'KG', quantidade: 20 },
-      { produto: 'Arroz Branco', unidade: 'KG', quantidade: 30 },
-      { produto: 'Ovos Brancos', unidade: 'DZ', quantidade: 6 },
-    ],
-    observacoes: null,
-    responsavelRecebimento: null,
-  },
-];
-
-/** As entregas de demonstração aparecem sempre como recibos "prontos", ao lado dos importados de verdade. */
-function recibosMock(): ReciboPreparado[] {
-  return RECIBOS_DEMONSTRACAO.map((entrega, index) => ({
-    id: `mock-${index}-${entrega.codigoEntrega}`,
-    entrega,
-    status: 'pronto' as StatusPreparoRecibo,
-    problemas: [],
-    origem: 'mock' as const,
-  }));
-}
-
 function lerImportados(): ReciboPreparado[] {
   try {
     const bruto = localStorage.getItem(CHAVE_LOCALSTORAGE);
@@ -103,9 +29,9 @@ export function definirRecibosImportados(recibos: ReciboPreparado[]): void {
   salvar();
 }
 
-/** Lista combinada: recibos de demonstração + os da última planilha importada. */
+/** Recibos preparados a partir da última planilha importada. */
 export function listarRecibosPreparados(): ReciboPreparado[] {
-  return [...recibosMock(), ...recibosImportados];
+  return recibosImportados;
 }
 
 export function obterReciboPorId(id: string): ReciboPreparado | undefined {
@@ -114,12 +40,12 @@ export function obterReciboPorId(id: string): ReciboPreparado | undefined {
 
 export function atualizarStatusRecibo(id: string, status: StatusPreparoRecibo): void {
   const indice = recibosImportados.findIndex((r) => r.id === id);
-  if (indice === -1) return; // recibos de demonstração não têm status persistente alterável
+  if (indice === -1) return;
   recibosImportados[indice] = { ...recibosImportados[indice], status };
   salvar();
 }
 
-/** Remove um recibo importado da lista. Recibos de demonstração não são removíveis (voltariam no próximo recarregamento). */
+/** Remove um recibo importado da lista. */
 export function removerRecibo(id: string): void {
   const antes = recibosImportados.length;
   recibosImportados = recibosImportados.filter((r) => r.id !== id);
