@@ -142,6 +142,19 @@ de reprocessar, para evitar recibos duplicados. Depois de processar, dá para
 abrir a planilha original (como foi lida, antes de qualquer normalização)
 para conferir contra os dados que o sistema organizou.
 
+Cada planilha importada é de uma prefeitura diferente e pode chegar a
+qualquer momento — importar uma planilha nova **nunca apaga** os recibos de
+uma importação anterior; elas convivem lado a lado (`ReciboPreparado.importacaoId`
+liga cada recibo à planilha que o gerou). A tela "Recibos Preparados" separa
+os recibos por planilha (agrupados por município/nome do arquivo quando
+"Todas" está selecionado, ou filtrados para ver uma só) e permite excluir uma
+planilha inteira sem afetar as outras.
+
+Toda escola que a planilha traz mas que ainda não está em "Escolas
+Cadastradas" é cadastrada automaticamente (nome, endereço, horário, código,
+CNPJ — o que a planilha trouxer), sem exigir nenhum cadastro manual. Nas
+próximas semanas essa escola já é reconhecida.
+
 ## Estrutura de pastas
 
 ```

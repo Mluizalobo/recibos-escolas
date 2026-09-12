@@ -5,7 +5,7 @@ import { validarArquivoPlanilha } from '../utils/validators';
 import { calcularHashPlanilha, lerArquivoExcel } from '../services/excelService';
 import { normalizeSpreadsheetData } from '../services/normalizeService';
 import { registrarEntregasImportadas } from '../services/api';
-import { definirRecibosImportados } from '../services/recibosStore';
+import { adicionarRecibosImportados } from '../services/recibosStore';
 import { encontrarImportacaoDuplicada, registrarImportacao } from '../services/historyService';
 import { criarEscolaCadastrada, listarEscolasCadastradas, type DadosEscolaCadastrada } from '../services/escolasStore';
 import { formatPrimitiveValue } from '../utils/formatters';
@@ -158,13 +158,14 @@ export default function Importacao() {
       }
 
       const escolasCadastradas = await listarEscolasCadastradas();
-      const resultadoNormalizado = normalizeSpreadsheetData(grade, escolasCadastradas);
+      const importacaoId = `imp-${Date.now()}`;
+      const resultadoNormalizado = normalizeSpreadsheetData(grade, escolasCadastradas, importacaoId);
       setEscolasNovasCadastradas(await cadastrarEscolasNovas(resultadoNormalizado));
 
-      await definirRecibosImportados(resultadoNormalizado.recibos);
-      registrarEntregasImportadas(resultadoNormalizado.recibos.map((r) => r.entrega));
+      // A linha do histórico precisa existir antes dos recibos por causa da
+      // referência (importacao_id) entre as tabelas.
       await registrarImportacao({
-        id: `imp-${Date.now()}`,
+        id: importacaoId,
         nomeArquivo: arquivo.name,
         tamanhoBytes: arquivo.size,
         dataImportacao: new Date().toISOString(),
@@ -175,7 +176,10 @@ export default function Importacao() {
         totalDuplicados: resultadoNormalizado.totalDuplicados,
         status: resultadoNormalizado.totalComErro > 0 ? 'com_erros' : 'concluida',
         hashConteudo: hash,
+        municipio: resultadoNormalizado.municipio,
       });
+      await adicionarRecibosImportados(resultadoNormalizado.recibos);
+      registrarEntregasImportadas(resultadoNormalizado.recibos.map((r) => r.entrega));
 
       setResultado(resultadoNormalizado);
       setStatusProcessamento('concluido');

@@ -13,6 +13,7 @@ interface LinhaHistorico {
   total_duplicados: number;
   status: ImportacaoHistorico['status'];
   hash_conteudo: string;
+  municipio: string | null;
 }
 
 function linhaParaHistorico(linha: LinhaHistorico): ImportacaoHistorico {
@@ -28,6 +29,7 @@ function linhaParaHistorico(linha: LinhaHistorico): ImportacaoHistorico {
     totalDuplicados: linha.total_duplicados,
     status: linha.status,
     hashConteudo: linha.hash_conteudo,
+    municipio: linha.municipio,
   };
 }
 
@@ -54,6 +56,7 @@ export async function registrarImportacao(entrada: ImportacaoHistorico): Promise
     total_duplicados: entrada.totalDuplicados,
     status: entrada.status,
     hash_conteudo: entrada.hashConteudo,
+    municipio: entrada.municipio ?? null,
   });
   if (error) throw error;
 }
@@ -68,4 +71,16 @@ export async function encontrarImportacaoDuplicada(hashConteudo: string): Promis
     .maybeSingle();
   if (error) throw error;
   return data ? linhaParaHistorico(data as LinhaHistorico) : undefined;
+}
+
+/**
+ * Remove uma planilha inteira do histórico — e, por causa do "on delete
+ * cascade" na coluna `importacao_id` de recibos_preparados (ver
+ * supabase/schema.sql), remove junto todos os recibos preparados dela.
+ * Use isso para tirar uma planilha importada por engano, sem afetar as
+ * outras prefeituras.
+ */
+export async function removerImportacao(id: string): Promise<void> {
+  const { error } = await supabase.from('historico_importacoes').delete().eq('id', id);
+  if (error) throw error;
 }

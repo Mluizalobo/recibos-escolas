@@ -7,6 +7,7 @@ interface LinhaReciboPreparado {
   status: StatusPreparoRecibo;
   problemas: ProblemaRecibo[];
   origem: 'importacao';
+  importacao_id: string;
 }
 
 function linhaParaRecibo(linha: LinhaReciboPreparado): ReciboPreparado {
@@ -16,18 +17,20 @@ function linhaParaRecibo(linha: LinhaReciboPreparado): ReciboPreparado {
     status: linha.status,
     problemas: linha.problemas ?? [],
     origem: linha.origem,
+    importacaoId: linha.importacao_id,
   };
 }
 
 /**
- * Substitui os recibos preparados pelos da planilha processada mais
- * recentemente: apaga tudo que havia antes e insere o novo lote — a
- * importação de uma nova planilha sempre substitui a semana anterior.
+ * Acrescenta os recibos de uma planilha recém-processada aos que já
+ * existiam. Cada planilha é de uma prefeitura diferente e pode chegar a
+ * qualquer momento — diferente de antes, uma nova importação NUNCA apaga as
+ * anteriores; elas convivem lado a lado, separadas por `importacaoId` (ver
+ * `ReciboPreparado.importacaoId` e a tela "Recibos Preparados", que agrupa
+ * por planilha). Excluir os recibos de uma planilha inteira é
+ * `historyService.removerImportacao`, não esta função.
  */
-export async function definirRecibosImportados(recibos: ReciboPreparado[]): Promise<void> {
-  const { error: erroApagar } = await supabase.from('recibos_preparados').delete().neq('id', '');
-  if (erroApagar) throw erroApagar;
-
+export async function adicionarRecibosImportados(recibos: ReciboPreparado[]): Promise<void> {
   if (recibos.length === 0) return;
 
   const linhas = recibos.map((recibo) => ({
@@ -36,9 +39,10 @@ export async function definirRecibosImportados(recibos: ReciboPreparado[]): Prom
     status: recibo.status,
     problemas: recibo.problemas,
     origem: recibo.origem,
+    importacao_id: recibo.importacaoId,
   }));
-  const { error: erroInserir } = await supabase.from('recibos_preparados').insert(linhas);
-  if (erroInserir) throw erroInserir;
+  const { error } = await supabase.from('recibos_preparados').insert(linhas);
+  if (error) throw error;
 }
 
 export async function listarRecibosPreparados(): Promise<ReciboPreparado[]> {

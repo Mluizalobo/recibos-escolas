@@ -184,7 +184,11 @@ interface GrupoEmConstrucao {
  * Planilha "tabela": mapeia cabeçalhos, agrupa linhas da mesma entrega,
  * valida cada registro e classifica cada recibo com um status.
  */
-function normalizarTabela(linhas: PlanilhaLinha[], escolasCadastradas: EscolaCadastrada[]): ResultadoImportacao {
+function normalizarTabela(
+  linhas: PlanilhaLinha[],
+  escolasCadastradas: EscolaCadastrada[],
+  importacaoId: string,
+): ResultadoImportacao {
   const avisos: string[] = [];
 
   if (linhas.length === 0) {
@@ -197,6 +201,7 @@ function normalizarTabela(linhas: PlanilhaLinha[], escolasCadastradas: EscolaCad
       totalDuplicados: 0,
       avisos: ['A planilha está vazia ou não possui dados.'],
       hashConteudo: '',
+      municipio: null,
     };
   }
 
@@ -343,13 +348,19 @@ function normalizarTabela(linhas: PlanilhaLinha[], escolasCadastradas: EscolaCad
     const status: StatusPreparoRecibo = grupo.problemas.length > 0 ? 'pendente' : 'pronto';
 
     return {
-      id: `importado-${chave}`,
+      id: `${importacaoId}-${chave}`,
       entrega: grupo.entrega,
       status,
       problemas: grupo.problemas,
       origem: 'importacao',
+      importacaoId,
     };
   });
+
+  const cidades = new Set(
+    recibos.map((r) => r.entrega.escola.endereco.cidade).filter((cidade): cidade is string => !!cidade),
+  );
+  const municipio = cidades.size === 1 ? [...cidades][0] : null;
 
   return {
     recibos,
@@ -360,6 +371,7 @@ function normalizarTabela(linhas: PlanilhaLinha[], escolasCadastradas: EscolaCad
     totalDuplicados,
     avisos,
     hashConteudo: '',
+    municipio,
   };
 }
 
@@ -469,6 +481,7 @@ function normalizarMatriz(
   grade: PlanilhaGrade,
   blocos: BlocoMatriz[],
   escolasCadastradas: EscolaCadastrada[],
+  importacaoId: string,
 ): ResultadoImportacao {
   const avisos: string[] = [];
   const recibos: ReciboPreparado[] = [];
@@ -575,11 +588,12 @@ function normalizarMatriz(
       };
 
       recibos.push({
-        id: `importado-matriz-${bloco.linhaEntrega}-${i}`,
+        id: `${importacaoId}-matriz-${bloco.linhaEntrega}-${i}`,
         entrega,
         status: 'pendente',
         problemas,
         origem: 'importacao',
+        importacaoId,
       });
     }
   });
@@ -593,6 +607,7 @@ function normalizarMatriz(
     totalDuplicados: 0,
     avisos,
     hashConteudo: '',
+    municipio,
   };
 }
 
@@ -610,6 +625,7 @@ function normalizarMatriz(
 export function normalizeSpreadsheetData(
   grade: PlanilhaGrade,
   escolasCadastradas: EscolaCadastrada[],
+  importacaoId: string,
 ): ResultadoImportacao {
   const hashConteudo = gerarHash(JSON.stringify(grade));
 
@@ -623,14 +639,15 @@ export function normalizeSpreadsheetData(
       totalDuplicados: 0,
       avisos: ['A planilha está vazia ou não possui dados.'],
       hashConteudo,
+      municipio: null,
     };
   }
 
   const blocos = detectarBlocosMatriz(grade);
   const resultado =
     blocos.length > 0
-      ? normalizarMatriz(grade, blocos, escolasCadastradas)
-      : normalizarTabela(gradeParaLinhas(grade), escolasCadastradas);
+      ? normalizarMatriz(grade, blocos, escolasCadastradas, importacaoId)
+      : normalizarTabela(gradeParaLinhas(grade), escolasCadastradas, importacaoId);
 
   return { ...resultado, hashConteudo };
 }

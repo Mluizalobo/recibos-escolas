@@ -143,7 +143,10 @@ export interface ProblemaRecibo {
 /**
  * Um recibo "preparado" pelo sistema a partir da planilha, pronto para ser
  * conferido e gerado pelo usuário — que atua como conferente, não como
- * digitador.
+ * digitador. `importacaoId` liga o recibo à planilha (ImportacaoHistorico)
+ * que o gerou — cada planilha é de uma prefeitura diferente, então isso é o
+ * que permite separar "Recibos Preparados" por planilha em vez de misturar
+ * tudo numa lista só.
  */
 export interface ReciboPreparado {
   id: string;
@@ -151,6 +154,7 @@ export interface ReciboPreparado {
   status: StatusPreparoRecibo;
   problemas: ProblemaRecibo[];
   origem: 'importacao';
+  importacaoId: string;
 }
 
 /** Um registro do histórico de importações semanais da planilha. */
@@ -166,6 +170,8 @@ export interface ImportacaoHistorico {
   totalDuplicados: number;
   status: 'concluida' | 'com_erros';
   hashConteudo: string;
+  /** Município/prefeitura detectado na planilha (formato matriz) ou inferido do endereço das escolas (formato tabela). */
+  municipio?: string | null;
 }
 
 /** Resultado padronizado da camada de serviço, usado pela UI para tratar erros. */
@@ -197,6 +203,8 @@ export interface ResultadoImportacao {
   /** Avisos gerais que não puderam ser associados a um recibo específico (ex: linha sem nenhum identificador). */
   avisos: string[];
   hashConteudo: string;
+  /** Município/prefeitura detectado nesta planilha, quando possível — usado para identificar a planilha na tela de Recibos Preparados. */
+  municipio: string | null;
 }
 
 export type ModoLote = 'individual' | 'unico';

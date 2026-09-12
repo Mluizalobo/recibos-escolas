@@ -7,10 +7,12 @@ import {
   removerRecibo,
   type DadosCorrecaoRecibo,
 } from '../services/recibosStore';
+import { listarHistorico, removerImportacao } from '../services/historyService';
 import { EMPRESA } from '../services/api';
 import { gerarPdfRecibo, gerarPdfUnicoComVarios, nomeArquivoRecibo } from '../services/pdfService';
 import {
   STATUS_PREPARO_LABEL,
+  type ImportacaoHistorico,
   type JsonObject,
   type ModoLote,
   type ReciboPreparado,
@@ -28,6 +30,8 @@ const STATUS_ESTILO: Record<StatusPreparoRecibo, string> = {
   impresso: 'bg-purple-100 text-purple-700',
 };
 
+const SEM_PLANILHA = 'sem-planilha';
+
 function normalizar(valor: string): string {
   return valor
     .normalize('NFD')
@@ -36,18 +40,36 @@ function normalizar(valor: string): string {
     .toLowerCase();
 }
 
+/** Rótulo de uma planilha na tela: prioriza o município detectado (o que Poliana reconhece de cara), senão o nome do arquivo. */
+function rotuloPlanilha(h: ImportacaoHistorico): string {
+  const data = new Date(h.dataImportacao).toLocaleDateString('pt-BR');
+  return `${h.municipio ?? h.nomeArquivo} — ${data}`;
+}
+
+interface GrupoPlanilha {
+  chave: string;
+  titulo: string;
+  historico: ImportacaoHistorico | null;
+  recibos: ReciboPreparado[];
+}
+
 /**
- * Lista de recibos preparados (importados + demonstração) com status,
- * busca, filtro, correção pontual e geração em lote — o usuário confere e
- * gera; não digita os dados de novo.
+ * Lista de recibos preparados com status, busca, filtro, correção pontual e
+ * geração em lote — o usuário confere e gera; não digita os dados de novo.
+ * Cada planilha importada é de uma prefeitura diferente e pode chegar a
+ * qualquer momento sem apagar as anteriores (ver recibosStore.ts), então
+ * aqui os recibos ficam agrupados/filtráveis por planilha em vez de virar
+ * uma lista só misturando tudo.
  */
 export default function BatchGenerator() {
   const [recibos, setRecibos] = useState<ReciboPreparado[]>([]);
+  const [historico, setHistorico] = useState<ImportacaoHistorico[]>([]);
   const [carregando, setCarregando] = useState(true);
   const [selecionados, setSelecionados] = useState<Set<string>>(new Set());
   const [modo, setModo] = useState<ModoLote>('individual');
   const [busca, setBusca] = useState('');
   const [filtroStatus, setFiltroStatus] = useState<StatusPreparoRecibo | 'todos'>('todos');
+  const [filtroPlanilha, setFiltroPlanilha] = useState('todas');
   const [gerando, setGerando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
   const [progresso, setProgresso] = useState<{ atual: number; total: number } | null>(null);
@@ -58,7 +80,12 @@ export default function BatchGenerator() {
 
   async function recarregar() {
     try {
-      setRecibos(await listarRecibosPreparados());
+      const [recibosCarregados, historicoCarregado] = await Promise.all([
+        listarRecibosPreparados(),
+        listarHistorico(),
+      ]);
+      setRecibos(recibosCarregados);
+      setHistorico(historicoCarregado);
     } catch {
       setErro('Não foi possível carregar os recibos preparados. Tente novamente.');
     } finally {
@@ -70,14 +97,50 @@ export default function BatchGenerator() {
     recarregar();
   }, []);
 
+  const planilhasDisponiveis = useMemo(() => {
+    const idsComRecibo = new Set(recibos.map((r) => r.importacaoId));
+    return historico.filter((h) => idsComRecibo.has(h.id));
+  }, [recibos, historico]);
+
+  const existemRecibosSemPlanilha = useMemo(
+    () => recibos.some((r) => !historico.some((h) => h.id === r.importacaoId)),
+    [recibos, historico],
+  );
+
   const recibosFiltrados = useMemo(() => {
     const buscaNormalizada = normalizar(busca);
     return recibos.filter((recibo) => {
       const combinaBusca = !buscaNormalizada || normalizar(recibo.entrega.escola.nome).includes(buscaNormalizada);
       const combinaStatus = filtroStatus === 'todos' || recibo.status === filtroStatus;
-      return combinaBusca && combinaStatus;
+      const combinaPlanilha =
+        filtroPlanilha === 'todas' ||
+        (filtroPlanilha === SEM_PLANILHA
+          ? !historico.some((h) => h.id === recibo.importacaoId)
+          : recibo.importacaoId === filtroPlanilha);
+      return combinaBusca && combinaStatus && combinaPlanilha;
     });
-  }, [recibos, busca, filtroStatus]);
+  }, [recibos, busca, filtroStatus, filtroPlanilha, historico]);
+
+  const grupos = useMemo<GrupoPlanilha[]>(() => {
+    const porId = new Map<string, ReciboPreparado[]>();
+    for (const recibo of recibosFiltrados) {
+      const lista = porId.get(recibo.importacaoId);
+      if (lista) lista.push(recibo);
+      else porId.set(recibo.importacaoId, [recibo]);
+    }
+
+    const ordenados: GrupoPlanilha[] = [];
+    for (const h of historico) {
+      const lista = porId.get(h.id);
+      if (lista) ordenados.push({ chave: h.id, titulo: rotuloPlanilha(h), historico: h, recibos: lista });
+    }
+    for (const [id, lista] of porId) {
+      if (!historico.some((h) => h.id === id)) {
+        ordenados.push({ chave: id, titulo: 'Sem planilha identificada', historico: null, recibos: lista });
+      }
+    }
+    return ordenados;
+  }, [recibosFiltrados, historico]);
 
   function alternarSelecao(id: string) {
     setSelecionados((atual) => {
@@ -179,6 +242,23 @@ export default function BatchGenerator() {
     }
   }
 
+  async function handleExcluirPlanilha(grupo: GrupoPlanilha) {
+    if (!grupo.historico) return;
+    const confirmado = window.confirm(
+      `Excluir a planilha "${grupo.titulo}" inteira? Isso remove os ${grupo.recibos.length} recibo(s) dela. Essa ação não pode ser desfeita.`,
+    );
+    if (!confirmado) return;
+
+    setErro(null);
+    try {
+      await removerImportacao(grupo.historico.id);
+      if (filtroPlanilha === grupo.historico.id) setFiltroPlanilha('todas');
+      await recarregar();
+    } catch {
+      setErro('Não foi possível excluir a planilha. Tente novamente.');
+    }
+  }
+
   if (visualizando) {
     return (
       <ReciboPreview
@@ -193,12 +273,76 @@ export default function BatchGenerator() {
     );
   }
 
+  function linhaRecibo(recibo: ReciboPreparado) {
+    return (
+      <li key={recibo.id} className="flex flex-wrap items-center gap-3 py-3">
+        <input
+          type="checkbox"
+          id={`check-${recibo.id}`}
+          checked={selecionados.has(recibo.id)}
+          onChange={() => alternarSelecao(recibo.id)}
+          className="h-4 w-4 rounded border-gray-300 text-brand focus:ring-brand"
+        />
+        <label htmlFor={`check-${recibo.id}`} className="min-w-[10rem] flex-1 cursor-pointer text-sm text-gray-800">
+          {recibo.entrega.escola.nome || 'Escola não identificada'}
+          <span className="ml-2 text-xs text-gray-400">
+            {recibo.entrega.numeroPedido && recibo.entrega.numeroPedido !== '—'
+              ? `Pedido ${recibo.entrega.numeroPedido}`
+              : `${recibo.entrega.itens.length} item(ns)`}
+          </span>
+        </label>
+        <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${STATUS_ESTILO[recibo.status]}`}>
+          {STATUS_PREPARO_LABEL[recibo.status]}
+        </span>
+        <div className="flex items-center gap-1">
+          <button
+            type="button"
+            onClick={() => setVisualizando(recibo)}
+            aria-label={`Visualizar recibo de ${recibo.entrega.escola.nome}`}
+            className="rounded-md p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-700"
+          >
+            <Eye className="h-4 w-4" aria-hidden="true" />
+          </button>
+          {recibo.origem === 'importacao' && (
+            <button
+              type="button"
+              onClick={() => setEditando(recibo)}
+              aria-label={`Corrigir dados de ${recibo.entrega.escola.nome}`}
+              className="rounded-md p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-700"
+            >
+              <Pencil className="h-4 w-4" aria-hidden="true" />
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={() => handleGerarUm(recibo)}
+            aria-label={`Gerar PDF de ${recibo.entrega.escola.nome}`}
+            className="rounded-md p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-700"
+          >
+            <FileDown className="h-4 w-4" aria-hidden="true" />
+          </button>
+          {recibo.origem === 'importacao' && (
+            <button
+              type="button"
+              onClick={() => handleExcluir(recibo)}
+              aria-label={`Excluir recibo de ${recibo.entrega.escola.nome}`}
+              className="rounded-md p-2 text-gray-500 hover:bg-red-50 hover:text-red-600"
+            >
+              <Trash2 className="h-4 w-4" aria-hidden="true" />
+            </button>
+          )}
+        </div>
+      </li>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-xl font-semibold text-gray-900">Recibos Preparados</h1>
         <p className="text-sm text-gray-500">
-          Confira os recibos organizados a partir da planilha, corrija o que precisar e gere os PDFs.
+          Confira os recibos organizados a partir da planilha, corrija o que precisar e gere os PDFs. Cada planilha
+          importada (uma por prefeitura) fica separada — importar uma nova não apaga as outras.
         </p>
       </div>
 
@@ -214,6 +358,22 @@ export default function BatchGenerator() {
             className="h-10 w-full rounded-md border border-gray-300 pl-9 pr-3 text-sm text-gray-800 focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand-light"
           />
         </div>
+        <label className="flex items-center gap-2 text-sm text-gray-600">
+          Planilha
+          <select
+            value={filtroPlanilha}
+            onChange={(e) => setFiltroPlanilha(e.target.value)}
+            className="h-10 max-w-[16rem] rounded-md border border-gray-300 bg-white px-2 text-sm text-gray-800 focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand-light"
+          >
+            <option value="todas">Todas</option>
+            {planilhasDisponiveis.map((h) => (
+              <option key={h.id} value={h.id}>
+                {rotuloPlanilha(h)}
+              </option>
+            ))}
+            {existemRecibosSemPlanilha && <option value={SEM_PLANILHA}>Sem planilha identificada</option>}
+          </select>
+        </label>
         <label className="flex items-center gap-2 text-sm text-gray-600">
           Status
           <select
@@ -256,69 +416,32 @@ export default function BatchGenerator() {
           <p className="py-6 text-center text-sm text-gray-400">Carregando…</p>
         ) : recibosFiltrados.length === 0 ? (
           <p className="py-6 text-center text-sm text-gray-400">Nenhum recibo encontrado.</p>
+        ) : filtroPlanilha !== 'todas' ? (
+          <ul className="divide-y divide-gray-100">{recibosFiltrados.map(linhaRecibo)}</ul>
         ) : (
-          <ul className="divide-y divide-gray-100">
-            {recibosFiltrados.map((recibo) => (
-              <li key={recibo.id} className="flex flex-wrap items-center gap-3 py-3">
-                <input
-                  type="checkbox"
-                  id={`check-${recibo.id}`}
-                  checked={selecionados.has(recibo.id)}
-                  onChange={() => alternarSelecao(recibo.id)}
-                  className="h-4 w-4 rounded border-gray-300 text-brand focus:ring-brand"
-                />
-                <label htmlFor={`check-${recibo.id}`} className="min-w-[10rem] flex-1 cursor-pointer text-sm text-gray-800">
-                  {recibo.entrega.escola.nome || 'Escola não identificada'}
-                  <span className="ml-2 text-xs text-gray-400">
-                    {recibo.entrega.numeroPedido && recibo.entrega.numeroPedido !== '—'
-                      ? `Pedido ${recibo.entrega.numeroPedido}`
-                      : `${recibo.entrega.itens.length} item(ns)`}
-                  </span>
-                </label>
-                <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${STATUS_ESTILO[recibo.status]}`}>
-                  {STATUS_PREPARO_LABEL[recibo.status]}
-                </span>
-                <div className="flex items-center gap-1">
-                  <button
-                    type="button"
-                    onClick={() => setVisualizando(recibo)}
-                    aria-label={`Visualizar recibo de ${recibo.entrega.escola.nome}`}
-                    className="rounded-md p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-700"
-                  >
-                    <Eye className="h-4 w-4" aria-hidden="true" />
-                  </button>
-                  {recibo.origem === 'importacao' && (
+          <div className="space-y-5">
+            {grupos.map((grupo) => (
+              <div key={grupo.chave}>
+                <div className="mb-1 flex items-center justify-between gap-2 pt-2">
+                  <h2 className="text-sm font-semibold text-gray-700">
+                    {grupo.titulo} <span className="font-normal text-gray-400">({grupo.recibos.length})</span>
+                  </h2>
+                  {grupo.historico && (
                     <button
                       type="button"
-                      onClick={() => setEditando(recibo)}
-                      aria-label={`Corrigir dados de ${recibo.entrega.escola.nome}`}
-                      className="rounded-md p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-700"
+                      onClick={() => handleExcluirPlanilha(grupo)}
+                      className="text-xs font-medium text-red-600 hover:underline"
                     >
-                      <Pencil className="h-4 w-4" aria-hidden="true" />
-                    </button>
-                  )}
-                  <button
-                    type="button"
-                    onClick={() => handleGerarUm(recibo)}
-                    aria-label={`Gerar PDF de ${recibo.entrega.escola.nome}`}
-                    className="rounded-md p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-700"
-                  >
-                    <FileDown className="h-4 w-4" aria-hidden="true" />
-                  </button>
-                  {recibo.origem === 'importacao' && (
-                    <button
-                      type="button"
-                      onClick={() => handleExcluir(recibo)}
-                      aria-label={`Excluir recibo de ${recibo.entrega.escola.nome}`}
-                      className="rounded-md p-2 text-gray-500 hover:bg-red-50 hover:text-red-600"
-                    >
-                      <Trash2 className="h-4 w-4" aria-hidden="true" />
+                      Excluir esta planilha
                     </button>
                   )}
                 </div>
-              </li>
+                <ul className="divide-y divide-gray-100 border-t border-gray-100">
+                  {grupo.recibos.map(linhaRecibo)}
+                </ul>
+              </div>
             ))}
-          </ul>
+          </div>
         )}
       </div>
 
