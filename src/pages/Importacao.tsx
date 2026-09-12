@@ -7,7 +7,7 @@ import { normalizeSpreadsheetData } from '../services/normalizeService';
 import { registrarEntregasImportadas } from '../services/api';
 import { definirRecibosImportados } from '../services/recibosStore';
 import { encontrarImportacaoDuplicada, registrarImportacao } from '../services/historyService';
-import { listarEscolasCadastradas } from '../services/escolasStore';
+import { criarEscolaCadastrada, listarEscolasCadastradas, type DadosEscolaCadastrada } from '../services/escolasStore';
 import { formatPrimitiveValue } from '../utils/formatters';
 import type { ImportacaoHistorico, JsonValue, PlanilhaGrade, ResultadoImportacao } from '../types';
 
@@ -43,6 +43,51 @@ const MAX_LINHAS_PREVIEW = 100;
 const MAX_COLUNAS_PREVIEW = 25;
 
 /**
+ * Toda escola que a importação não achou no cadastro (problema com
+ * campo "cadastro") é cadastrada automaticamente com o que a planilha
+ * trouxer — nome, endereço, horário, código, CNPJ. Assim o cadastro cresce
+ * sozinho a cada planilha, sem trabalho manual, e nas próximas semanas essa
+ * escola já vem com os dados preenchidos. Devolve quantas escolas novas
+ * foram cadastradas nesta importação.
+ */
+async function cadastrarEscolasNovas(resultado: ResultadoImportacao): Promise<number> {
+  const novas = new Map<string, DadosEscolaCadastrada>();
+
+  for (const recibo of resultado.recibos) {
+    const temProblemaDeCadastro = recibo.problemas.some((p) => p.campo === 'cadastro');
+    if (!temProblemaDeCadastro) continue;
+
+    const escola = recibo.entrega.escola;
+    const chave = escola.nome.trim().toUpperCase();
+    if (!novas.has(chave)) {
+      novas.set(chave, {
+        nome: escola.nome,
+        apelidos: [],
+        codigoEscola: escola.codigoEscola || undefined,
+        cnpj: escola.cnpj || undefined,
+        endereco: escola.endereco,
+        horarioFuncionamento: escola.horarioFuncionamento,
+      });
+    }
+  }
+
+  if (novas.size === 0) return 0;
+
+  await Promise.all([...novas.values()].map((dados) => criarEscolaCadastrada(dados)));
+
+  // Atualiza a mensagem do aviso: a escola não estava cadastrada, mas já
+  // foi agora — não faz mais sentido pedir pra alguém cadastrar manualmente.
+  for (const recibo of resultado.recibos) {
+    const problemaCadastro = recibo.problemas.find((p) => p.campo === 'cadastro');
+    if (problemaCadastro && novas.has(recibo.entrega.escola.nome.trim().toUpperCase())) {
+      problemaCadastro.mensagem = `"${recibo.entrega.escola.nome}" foi cadastrada automaticamente a partir desta planilha — confira os dados em "Escolas Cadastradas" e complete o que faltar.`;
+    }
+  }
+
+  return novas.size;
+}
+
+/**
  * Tela que substitui o processo manual "planilha semanal → copiar para o
  * Word → imprimir": o usuário só importa o arquivo, confere o resumo e os
  * recibos já saem preparados (ver src/services/normalizeService.ts).
@@ -60,6 +105,7 @@ export default function Importacao() {
   const [duplicataPendente, setDuplicataPendente] = useState<DuplicataPendente | null>(null);
   const [gradeBruta, setGradeBruta] = useState<PlanilhaGrade | null>(null);
   const [mostrarBruta, setMostrarBruta] = useState(false);
+  const [escolasNovasCadastradas, setEscolasNovasCadastradas] = useState(0);
 
   function selecionarArquivo(file: File | undefined) {
     setResultado(null);
@@ -67,6 +113,7 @@ export default function Importacao() {
     setDuplicataPendente(null);
     setGradeBruta(null);
     setMostrarBruta(false);
+    setEscolasNovasCadastradas(0);
 
     if (!file) return;
 
@@ -112,6 +159,7 @@ export default function Importacao() {
 
       const escolasCadastradas = await listarEscolasCadastradas();
       const resultadoNormalizado = normalizeSpreadsheetData(grade, escolasCadastradas);
+      setEscolasNovasCadastradas(await cadastrarEscolasNovas(resultadoNormalizado));
 
       await definirRecibosImportados(resultadoNormalizado.recibos);
       registrarEntregasImportadas(resultadoNormalizado.recibos.map((r) => r.entrega));
@@ -279,6 +327,15 @@ export default function Importacao() {
               <dd className="text-lg font-semibold text-gray-900">{resultado.totalDuplicados}</dd>
             </div>
           </dl>
+
+          {escolasNovasCadastradas > 0 && (
+            <p className="rounded-md bg-brand-light px-3 py-2 text-sm text-brand-dark">
+              {escolasNovasCadastradas} escola{escolasNovasCadastradas === 1 ? '' : 's'} nova
+              {escolasNovasCadastradas === 1 ? '' : 's'} cadastrada
+              {escolasNovasCadastradas === 1 ? '' : 's'} automaticamente em "Escolas Cadastradas" a partir desta
+              planilha.
+            </p>
+          )}
 
           {resultado.avisos.length > 0 && (
             <div>
