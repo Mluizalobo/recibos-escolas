@@ -4,7 +4,6 @@ import { AlertCircle, AlertTriangle, CheckCircle2, Eye, EyeOff, FileSpreadsheet,
 import { validarArquivoPlanilha } from '../utils/validators';
 import { calcularHashPlanilha, lerArquivoExcel } from '../services/excelService';
 import { normalizeSpreadsheetData } from '../services/normalizeService';
-import { registrarEntregasImportadas } from '../services/api';
 import { adicionarRecibosImportados } from '../services/recibosStore';
 import { encontrarImportacaoDuplicada, registrarImportacao } from '../services/historyService';
 import { criarEscolaCadastrada, listarEscolasCadastradas, type DadosEscolaCadastrada } from '../services/escolasStore';
@@ -179,7 +178,6 @@ export default function Importacao() {
         municipio: resultadoNormalizado.municipio,
       });
       await adicionarRecibosImportados(resultadoNormalizado.recibos);
-      registrarEntregasImportadas(resultadoNormalizado.recibos.map((r) => r.entrega));
 
       setResultado(resultadoNormalizado);
       setStatusProcessamento('concluido');

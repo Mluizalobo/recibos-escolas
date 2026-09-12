@@ -1,5 +1,6 @@
-import { ApiError, type Entrega, type JsonObject, type JsonValue, type SearchType } from '../types';
-import { EMPRESA, MOCK_REGISTROS, type MockRegistro } from './mockData';
+import { ApiError, type JsonObject, type JsonValue, type ReciboPreparado, type SearchType } from '../types';
+import { EMPRESA } from './mockData';
+import { listarRecibosPreparados } from './recibosStore';
 
 export { EMPRESA };
 
@@ -12,36 +13,36 @@ export interface ResultadoConsulta {
   dados: JsonObject;
 }
 
-/**
- * Entregas importadas via planilha ficam disponíveis em memória para consulta
- * na mesma sessão. Quando a fonte de dados real (API/banco) existir, esta
- * função — e o array abaixo — são o único ponto que precisa mudar; as telas
- * continuam chamando consultarEntrega/listarTodasEntregas normalmente.
- */
-let entregasImportadas: MockRegistro[] = [];
+interface RegistroConsulta {
+  id: string;
+  buscaValores: Partial<Record<SearchType, string>>;
+  dados: JsonObject;
+}
 
-export function registrarEntregasImportadas(entregas: Entrega[]): void {
-  entregasImportadas = entregas.map((entrega, index) => ({
-    id: `importado-${index}-${entrega.codigoEntrega ?? entrega.numeroPedido ?? index}`,
+/** Converte um recibo preparado (Supabase) no formato usado pela busca — mesma entrega, indexada pelos campos por onde ela pode ser encontrada. */
+function reciboParaRegistro(recibo: ReciboPreparado): RegistroConsulta {
+  const { escola } = recibo.entrega;
+  return {
+    id: recibo.id,
     buscaValores: {
-      nome: entrega.escola?.nome,
-      codigo_escola: entrega.escola?.codigoEscola,
-      cnpj: entrega.escola?.cnpj,
-      pedido: entrega.numeroPedido,
-      codigo_entrega: entrega.codigoEntrega,
+      nome: escola.nome || undefined,
+      codigo_escola: escola.codigoEscola || undefined,
+      cnpj: escola.cnpj || undefined,
+      pedido: recibo.entrega.numeroPedido || undefined,
+      codigo_entrega: recibo.entrega.codigoEntrega || undefined,
     },
-    dados: entrega as unknown as JsonObject,
-  }));
+    dados: recibo.entrega as unknown as JsonObject,
+  };
 }
 
-function baseDeRegistros(): MockRegistro[] {
-  return [...MOCK_REGISTROS, ...entregasImportadas];
-}
-
-const ATRASO_SIMULADO_MS = 600;
-
-function delay<T>(value: T, ms = ATRASO_SIMULADO_MS): Promise<T> {
-  return new Promise((resolve) => setTimeout(() => resolve(value), ms));
+/**
+ * Consulta e Dashboard buscam entre os recibos realmente preparados
+ * (Supabase) — a mesma fonte de verdade da tela "Recibos Preparados", não
+ * mais uma cópia em memória à parte.
+ */
+async function baseDeRegistros(): Promise<RegistroConsulta[]> {
+  const recibos = await listarRecibosPreparados();
+  return recibos.map(reciboParaRegistro);
 }
 
 function normalizar(value: string): string {
@@ -120,27 +121,11 @@ function corresponde(tipo: SearchType, buscaValor: string, valorDigitado: string
   return alvo === consulta || alvo.includes(consulta);
 }
 
-/**
- * Consulta uma entrega pelo tipo de identificador informado.
- * Hoje busca em dados mockados/importados; no futuro basta trocar o corpo
- * desta função por uma chamada HTTP (fetch/axios) — as telas não mudam.
- */
+/** Consulta uma entrega pelo tipo de identificador informado, entre os recibos realmente preparados. */
 export async function consultarEntrega(tipo: SearchType, valorDigitado: string): Promise<ResultadoConsulta> {
-  const chave = normalizar(valorDigitado);
+  const registros = await baseDeRegistros();
 
-  // Identificadores especiais para demonstrar/testar os estados de erro da tela.
-  if (chave === 'erro-rede') {
-    await delay(null, 500);
-    throw new ApiError('network', 'Não foi possível consultar os dados. Verifique sua conexão e tente novamente.');
-  }
-  if (chave === 'erro-inesperado') {
-    await delay(null, 500);
-    throw new ApiError('unknown', 'Ocorreu um erro inesperado. Tente novamente.');
-  }
-
-  await delay(null);
-
-  const registro = baseDeRegistros().find((r) => {
+  const registro = registros.find((r) => {
     const buscaValor = r.buscaValores[tipo];
     return !!buscaValor && corresponde(tipo, buscaValor, valorDigitado);
   });
@@ -153,13 +138,12 @@ export async function consultarEntrega(tipo: SearchType, valorDigitado: string):
 }
 
 export async function listarTodasEntregas(): Promise<ResultadoConsulta[]> {
-  await delay(null, 300);
-  return baseDeRegistros().map((r) => extrairResumo(r.id, r.dados));
+  const registros = await baseDeRegistros();
+  return registros.map((r) => extrairResumo(r.id, r.dados));
 }
 
 export async function obterResumoDashboard(): Promise<{ totalEntregas: number; totalEscolas: number }> {
-  await delay(null, 250);
-  const registros = baseDeRegistros();
+  const registros = await baseDeRegistros();
   const escolasUnicas = new Set(
     registros.map((r) => r.buscaValores.codigo_escola ?? r.buscaValores.cnpj ?? r.buscaValores.nome ?? r.id),
   );

@@ -10,12 +10,16 @@ export default function Dashboard() {
 
   useEffect(() => {
     let ativo = true;
-    obterResumoDashboard().then((dados) => {
-      if (ativo) setTotalEntregas(dados.totalEntregas);
-    });
-    listarEscolasCadastradas().then((escolas) => {
-      if (ativo) setTotalEscolasCadastradas(escolas.length);
-    });
+    obterResumoDashboard()
+      .then((dados) => {
+        if (ativo) setTotalEntregas(dados.totalEntregas);
+      })
+      .catch(() => {});
+    listarEscolasCadastradas()
+      .then((escolas) => {
+        if (ativo) setTotalEscolasCadastradas(escolas.length);
+      })
+      .catch(() => {});
     return () => {
       ativo = false;
     };

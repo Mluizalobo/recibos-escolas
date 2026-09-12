@@ -16,9 +16,11 @@ O recibo gerado é uma réplica fiel do modelo real fornecido pela empresa
 numeração grande e tabela de produtos) — ver `ReciboTemplate.tsx`.
 
 O sistema também mantém uma tela de consulta avulsa (`Consultar Entrega`),
-cujo destaque é o `DynamicDataRenderer`: um componente que percorre qualquer
-JSON recursivamente e decide como exibir cada campo (texto, tabela, cards,
-tags) sem depender de nomes de campo fixos — útil enquanto o formato real da
+que busca por nome/código/CNPJ/pedido entre os recibos realmente preparados
+(mesma fonte do Supabase usada em "Recibos Preparados" — ver `api.ts`). Seu
+destaque é o `DynamicDataRenderer`: um componente que percorre qualquer JSON
+recursivamente e decide como exibir cada campo (texto, tabela, cards, tags)
+sem depender de nomes de campo fixos — útil enquanto o formato real da
 planilha ainda pode mudar.
 
 ## Stack
@@ -174,7 +176,7 @@ src/
 │   ├── historyService.ts   # histórico de importações semanais (Supabase)
 │   ├── authService.ts      # login local (ver seção "Login")
 │   ├── pdfService.ts       # geração de PDF (individual e em lote)
-│   └── mockData.ts         # dados da empresa + demonstração para a Consulta
+│   └── mockData.ts         # dados cadastrais da empresa (EMPRESA)
 ├── utils/          # formatters, labelFormatter, validators, hash
 ├── types/          # tipos genéricos (JsonValue/JsonObject) e de domínio
 ├── hooks/          # useConsulta

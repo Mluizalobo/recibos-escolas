@@ -13,16 +13,18 @@ const STATUS_ESTILO: Record<StatusPreparoRecibo, string> = {
 };
 
 /**
- * Panorama do que está preparado para entrega agora (mocks + planilhas
- * importadas nesta sessão) — quantidade por escola e os produtos que mais
- * saem. Para o histórico de planilhas processadas semana a semana, ver a
- * tela Histórico.
+ * Panorama do que está preparado para entrega agora (todas as planilhas
+ * importadas, de qualquer prefeitura) — quantidade por escola e os produtos
+ * que mais saem. Para o histórico de planilhas processadas semana a semana,
+ * ver a tela Histórico.
  */
 export default function RelatorioSemanal() {
   const [recibos, setRecibos] = useState<ReciboPreparado[]>([]);
 
   useEffect(() => {
-    listarRecibosPreparados().then(setRecibos);
+    listarRecibosPreparados()
+      .then(setRecibos)
+      .catch(() => {});
   }, []);
 
   const escolasAtendidas = new Set(recibos.map((r) => r.entrega.escola.nome)).size;

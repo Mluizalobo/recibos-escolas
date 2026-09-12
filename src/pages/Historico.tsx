@@ -14,7 +14,9 @@ export default function Historico() {
   const [historico, setHistorico] = useState<ImportacaoHistorico[]>([]);
 
   useEffect(() => {
-    listarHistorico().then(setHistorico);
+    listarHistorico()
+      .then(setHistorico)
+      .catch(() => {});
   }, []);
 
   const numeroDaSemana = new Map<string, number>();
