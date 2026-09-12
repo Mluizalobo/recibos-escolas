@@ -1,55 +1,69 @@
+import { supabase } from './supabaseClient';
 import type { Entrega, ProblemaRecibo, ReciboPreparado, StatusPreparoRecibo } from '../types';
 
-const CHAVE_LOCALSTORAGE = 'recibos-escolas:recibos-importados';
-
-function lerImportados(): ReciboPreparado[] {
-  try {
-    const bruto = localStorage.getItem(CHAVE_LOCALSTORAGE);
-    if (!bruto) return [];
-    const dados = JSON.parse(bruto);
-    return Array.isArray(dados) ? dados : [];
-  } catch {
-    return [];
-  }
+interface LinhaReciboPreparado {
+  id: string;
+  entrega: Entrega;
+  status: StatusPreparoRecibo;
+  problemas: ProblemaRecibo[];
+  origem: 'importacao';
 }
 
-let recibosImportados: ReciboPreparado[] = lerImportados();
-
-function salvar(): void {
-  try {
-    localStorage.setItem(CHAVE_LOCALSTORAGE, JSON.stringify(recibosImportados));
-  } catch {
-    // localStorage indisponível — os recibos importados só não sobrevivem a um recarregamento da página.
-  }
+function linhaParaRecibo(linha: LinhaReciboPreparado): ReciboPreparado {
+  return {
+    id: linha.id,
+    entrega: linha.entrega,
+    status: linha.status,
+    problemas: linha.problemas ?? [],
+    origem: linha.origem,
+  };
 }
 
-/** Substitui os recibos vindos de importação pelos da planilha processada mais recentemente. */
-export function definirRecibosImportados(recibos: ReciboPreparado[]): void {
-  recibosImportados = recibos;
-  salvar();
+/**
+ * Substitui os recibos preparados pelos da planilha processada mais
+ * recentemente: apaga tudo que havia antes e insere o novo lote — a
+ * importação de uma nova planilha sempre substitui a semana anterior.
+ */
+export async function definirRecibosImportados(recibos: ReciboPreparado[]): Promise<void> {
+  const { error: erroApagar } = await supabase.from('recibos_preparados').delete().neq('id', '');
+  if (erroApagar) throw erroApagar;
+
+  if (recibos.length === 0) return;
+
+  const linhas = recibos.map((recibo) => ({
+    id: recibo.id,
+    entrega: recibo.entrega,
+    status: recibo.status,
+    problemas: recibo.problemas,
+    origem: recibo.origem,
+  }));
+  const { error: erroInserir } = await supabase.from('recibos_preparados').insert(linhas);
+  if (erroInserir) throw erroInserir;
 }
 
-/** Recibos preparados a partir da última planilha importada. */
-export function listarRecibosPreparados(): ReciboPreparado[] {
-  return recibosImportados;
+export async function listarRecibosPreparados(): Promise<ReciboPreparado[]> {
+  const { data, error } = await supabase
+    .from('recibos_preparados')
+    .select('*')
+    .order('sequencia', { ascending: true });
+  if (error) throw error;
+  return (data as LinhaReciboPreparado[]).map(linhaParaRecibo);
 }
 
-export function obterReciboPorId(id: string): ReciboPreparado | undefined {
-  return listarRecibosPreparados().find((r) => r.id === id);
+export async function obterReciboPorId(id: string): Promise<ReciboPreparado | undefined> {
+  const { data, error } = await supabase.from('recibos_preparados').select('*').eq('id', id).maybeSingle();
+  if (error) throw error;
+  return data ? linhaParaRecibo(data as LinhaReciboPreparado) : undefined;
 }
 
-export function atualizarStatusRecibo(id: string, status: StatusPreparoRecibo): void {
-  const indice = recibosImportados.findIndex((r) => r.id === id);
-  if (indice === -1) return;
-  recibosImportados[indice] = { ...recibosImportados[indice], status };
-  salvar();
+export async function atualizarStatusRecibo(id: string, status: StatusPreparoRecibo): Promise<void> {
+  const { error } = await supabase.from('recibos_preparados').update({ status }).eq('id', id);
+  if (error) throw error;
 }
 
-/** Remove um recibo importado da lista. */
-export function removerRecibo(id: string): void {
-  const antes = recibosImportados.length;
-  recibosImportados = recibosImportados.filter((r) => r.id !== id);
-  if (recibosImportados.length !== antes) salvar();
+export async function removerRecibo(id: string): Promise<void> {
+  const { error } = await supabase.from('recibos_preparados').delete().eq('id', id);
+  if (error) throw error;
 }
 
 export interface DadosCorrecaoRecibo {
@@ -68,10 +82,9 @@ export interface DadosCorrecaoRecibo {
  * ausentes não são "curáveis" por aqui — isso exige corrigir a planilha de
  * origem — então continuam bloqueando o recibo mesmo após a correção.
  */
-export function corrigirRecibo(id: string, dados: DadosCorrecaoRecibo): void {
-  const indice = recibosImportados.findIndex((r) => r.id === id);
-  if (indice === -1) return;
-  const atual = recibosImportados[indice];
+export async function corrigirRecibo(id: string, dados: DadosCorrecaoRecibo): Promise<void> {
+  const atual = await obterReciboPorId(id);
+  if (!atual) return;
 
   const entregaCorrigida: Entrega = {
     ...atual.entrega,
@@ -96,6 +109,9 @@ export function corrigirRecibo(id: string, dados: DadosCorrecaoRecibo): void {
   const temErro = problemasRestantes.some((p) => p.severidade === 'erro');
   const status: StatusPreparoRecibo = temErro ? 'com_erro' : problemasRestantes.length > 0 ? 'pendente' : 'pronto';
 
-  recibosImportados[indice] = { ...atual, entrega: entregaCorrigida, problemas: problemasRestantes, status };
-  salvar();
+  const { error } = await supabase
+    .from('recibos_preparados')
+    .update({ entrega: entregaCorrigida, problemas: problemasRestantes, status })
+    .eq('id', id);
+  if (error) throw error;
 }

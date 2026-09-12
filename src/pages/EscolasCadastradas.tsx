@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Pencil, Plus, School, Search, Trash2 } from 'lucide-react';
 import {
   criarEscolaCadastrada,
@@ -19,20 +19,34 @@ function normalizar(valor: string): string {
 }
 
 /**
- * Base própria de escolas da empresa. Cadastrar aqui é o que permite o
- * sistema reconhecer a escola na planilha semanal (mesmo escrita diferente)
- * e preencher endereço/horário/código automaticamente na importação, em vez
- * de deixar isso sempre pendente de conferência manual.
+ * Base própria de escolas da empresa, guardada no Supabase (compartilhada
+ * entre qualquer computador que acessar o sistema). Cadastrar aqui é o que
+ * permite reconhecer a escola na planilha semanal (mesmo escrita diferente)
+ * e preencher endereço/horário/código automaticamente na importação.
  */
 export default function EscolasCadastradas() {
-  const [escolas, setEscolas] = useState<EscolaCadastrada[]>(() => listarEscolasCadastradas());
+  const [escolas, setEscolas] = useState<EscolaCadastrada[]>([]);
+  const [carregando, setCarregando] = useState(true);
+  const [erro, setErro] = useState<string | null>(null);
   const [busca, setBusca] = useState('');
   const [editando, setEditando] = useState<EscolaCadastrada | null>(null);
   const [criando, setCriando] = useState(false);
+  const [salvando, setSalvando] = useState(false);
 
-  function recarregar() {
-    setEscolas(listarEscolasCadastradas());
+  async function recarregar() {
+    setErro(null);
+    try {
+      setEscolas(await listarEscolasCadastradas());
+    } catch {
+      setErro('Não foi possível carregar as escolas cadastradas. Tente novamente.');
+    } finally {
+      setCarregando(false);
+    }
   }
+
+  useEffect(() => {
+    recarregar();
+  }, []);
 
   const escolasFiltradas = useMemo(() => {
     const buscaNormalizada = normalizar(busca);
@@ -44,22 +58,35 @@ export default function EscolasCadastradas() {
     );
   }, [escolas, busca]);
 
-  function handleSalvar(dados: DadosEscolaCadastrada) {
-    if (editando) {
-      atualizarEscolaCadastrada(editando.id, dados);
-    } else {
-      criarEscolaCadastrada(dados);
+  async function handleSalvar(dados: DadosEscolaCadastrada) {
+    setSalvando(true);
+    setErro(null);
+    try {
+      if (editando) {
+        await atualizarEscolaCadastrada(editando.id, dados);
+      } else {
+        await criarEscolaCadastrada(dados);
+      }
+      setEditando(null);
+      setCriando(false);
+      await recarregar();
+    } catch {
+      setErro('Não foi possível salvar a escola. Tente novamente.');
+    } finally {
+      setSalvando(false);
     }
-    setEditando(null);
-    setCriando(false);
-    recarregar();
   }
 
-  function handleExcluir(escola: EscolaCadastrada) {
+  async function handleExcluir(escola: EscolaCadastrada) {
     const confirmado = window.confirm(`Excluir a escola "${escola.nome}" do cadastro? Essa ação não pode ser desfeita.`);
     if (!confirmado) return;
-    removerEscolaCadastrada(escola.id);
-    recarregar();
+    setErro(null);
+    try {
+      await removerEscolaCadastrada(escola.id);
+      await recarregar();
+    } catch {
+      setErro('Não foi possível excluir a escola. Tente novamente.');
+    }
   }
 
   const modalAberto = criando || editando !== null;
@@ -84,6 +111,12 @@ export default function EscolasCadastradas() {
         </button>
       </div>
 
+      {erro && (
+        <p role="alert" className="text-sm text-red-600">
+          {erro}
+        </p>
+      )}
+
       <div className="relative rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
         <div className="relative">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" aria-hidden="true" />
@@ -99,7 +132,9 @@ export default function EscolasCadastradas() {
       </div>
 
       <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-        {escolasFiltradas.length === 0 ? (
+        {carregando ? (
+          <p className="py-10 text-center text-sm text-gray-400">Carregando…</p>
+        ) : escolasFiltradas.length === 0 ? (
           <div className="py-10 text-center">
             <School className="mx-auto mb-2 h-8 w-8 text-gray-300" aria-hidden="true" />
             <p className="text-sm text-gray-400">
@@ -154,6 +189,7 @@ export default function EscolasCadastradas() {
           escola={editando}
           onSalvar={handleSalvar}
           onFechar={() => {
+            if (salvando) return;
             setEditando(null);
             setCriando(false);
           }}

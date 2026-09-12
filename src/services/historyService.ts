@@ -1,38 +1,71 @@
+import { supabase } from './supabaseClient';
 import type { ImportacaoHistorico } from '../types';
 
-const CHAVE_LOCALSTORAGE = 'recibos-escolas:historico-importacoes';
-
-function ler(): ImportacaoHistorico[] {
-  try {
-    const bruto = localStorage.getItem(CHAVE_LOCALSTORAGE);
-    if (!bruto) return [];
-    const dados = JSON.parse(bruto);
-    return Array.isArray(dados) ? dados : [];
-  } catch {
-    return [];
-  }
+interface LinhaHistorico {
+  id: string;
+  nome_arquivo: string;
+  tamanho_bytes: number;
+  data_importacao: string;
+  total_linhas: number;
+  total_escolas: number;
+  total_recibos: number;
+  total_com_erro: number;
+  total_duplicados: number;
+  status: ImportacaoHistorico['status'];
+  hash_conteudo: string;
 }
 
-function salvar(historico: ImportacaoHistorico[]): void {
-  try {
-    localStorage.setItem(CHAVE_LOCALSTORAGE, JSON.stringify(historico));
-  } catch {
-    // localStorage indisponível (modo privado, quota excedida etc.) — o histórico só não persiste entre sessões.
-  }
+function linhaParaHistorico(linha: LinhaHistorico): ImportacaoHistorico {
+  return {
+    id: linha.id,
+    nomeArquivo: linha.nome_arquivo,
+    tamanhoBytes: linha.tamanho_bytes,
+    dataImportacao: linha.data_importacao,
+    totalLinhas: linha.total_linhas,
+    totalEscolas: linha.total_escolas,
+    totalRecibos: linha.total_recibos,
+    totalComErro: linha.total_com_erro,
+    totalDuplicados: linha.total_duplicados,
+    status: linha.status,
+    hashConteudo: linha.hash_conteudo,
+  };
 }
 
 /** Importações mais recentes primeiro — é assim que a tela de Histórico exibe as semanas. */
-export function listarHistorico(): ImportacaoHistorico[] {
-  return ler().sort((a, b) => (a.dataImportacao < b.dataImportacao ? 1 : -1));
+export async function listarHistorico(): Promise<ImportacaoHistorico[]> {
+  const { data, error } = await supabase
+    .from('historico_importacoes')
+    .select('*')
+    .order('data_importacao', { ascending: false });
+  if (error) throw error;
+  return (data as LinhaHistorico[]).map(linhaParaHistorico);
 }
 
-export function registrarImportacao(entrada: ImportacaoHistorico): void {
-  const historico = ler();
-  historico.push(entrada);
-  salvar(historico);
+export async function registrarImportacao(entrada: ImportacaoHistorico): Promise<void> {
+  const { error } = await supabase.from('historico_importacoes').insert({
+    id: entrada.id,
+    nome_arquivo: entrada.nomeArquivo,
+    tamanho_bytes: entrada.tamanhoBytes,
+    data_importacao: entrada.dataImportacao,
+    total_linhas: entrada.totalLinhas,
+    total_escolas: entrada.totalEscolas,
+    total_recibos: entrada.totalRecibos,
+    total_com_erro: entrada.totalComErro,
+    total_duplicados: entrada.totalDuplicados,
+    status: entrada.status,
+    hash_conteudo: entrada.hashConteudo,
+  });
+  if (error) throw error;
 }
 
 /** Retorna a importação anterior com exatamente o mesmo conteúdo, se existir (mesma planilha reenviada). */
-export function encontrarImportacaoDuplicada(hashConteudo: string): ImportacaoHistorico | undefined {
-  return ler().find((item) => item.hashConteudo === hashConteudo);
+export async function encontrarImportacaoDuplicada(hashConteudo: string): Promise<ImportacaoHistorico | undefined> {
+  const { data, error } = await supabase
+    .from('historico_importacoes')
+    .select('*')
+    .eq('hash_conteudo', hashConteudo)
+    .limit(1)
+    .maybeSingle();
+  if (error) throw error;
+  return data ? linhaParaHistorico(data as LinhaHistorico) : undefined;
 }

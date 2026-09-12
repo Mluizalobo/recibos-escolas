@@ -7,6 +7,7 @@ import { normalizeSpreadsheetData } from '../services/normalizeService';
 import { registrarEntregasImportadas } from '../services/api';
 import { definirRecibosImportados } from '../services/recibosStore';
 import { encontrarImportacaoDuplicada, registrarImportacao } from '../services/historyService';
+import { listarEscolasCadastradas } from '../services/escolasStore';
 import { formatPrimitiveValue } from '../utils/formatters';
 import type { ImportacaoHistorico, JsonValue, PlanilhaGrade, ResultadoImportacao } from '../types';
 
@@ -101,7 +102,7 @@ export default function Importacao() {
       setGradeBruta(grade);
 
       if (!forcado) {
-        const duplicata = encontrarImportacaoDuplicada(hash);
+        const duplicata = await encontrarImportacaoDuplicada(hash);
         if (duplicata) {
           setDuplicataPendente({ grade, hash, duplicata });
           setStatusProcessamento('selecionado');
@@ -109,11 +110,12 @@ export default function Importacao() {
         }
       }
 
-      const resultadoNormalizado = normalizeSpreadsheetData(grade);
+      const escolasCadastradas = await listarEscolasCadastradas();
+      const resultadoNormalizado = normalizeSpreadsheetData(grade, escolasCadastradas);
 
-      definirRecibosImportados(resultadoNormalizado.recibos);
+      await definirRecibosImportados(resultadoNormalizado.recibos);
       registrarEntregasImportadas(resultadoNormalizado.recibos.map((r) => r.entrega));
-      registrarImportacao({
+      await registrarImportacao({
         id: `imp-${Date.now()}`,
         nomeArquivo: arquivo.name,
         tamanhoBytes: arquivo.size,

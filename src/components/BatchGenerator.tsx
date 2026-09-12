@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { CheckSquare, Eye, FileDown, Pencil, Search, Square, Trash2 } from 'lucide-react';
 import {
   atualizarStatusRecibo,
@@ -42,7 +42,8 @@ function normalizar(valor: string): string {
  * gera; não digita os dados de novo.
  */
 export default function BatchGenerator() {
-  const [recibos, setRecibos] = useState<ReciboPreparado[]>(() => listarRecibosPreparados());
+  const [recibos, setRecibos] = useState<ReciboPreparado[]>([]);
+  const [carregando, setCarregando] = useState(true);
   const [selecionados, setSelecionados] = useState<Set<string>>(new Set());
   const [modo, setModo] = useState<ModoLote>('individual');
   const [busca, setBusca] = useState('');
@@ -55,9 +56,19 @@ export default function BatchGenerator() {
 
   const refsRecibos = useRef<Record<string, HTMLDivElement | null>>({});
 
-  function recarregar() {
-    setRecibos(listarRecibosPreparados());
+  async function recarregar() {
+    try {
+      setRecibos(await listarRecibosPreparados());
+    } catch {
+      setErro('Não foi possível carregar os recibos preparados. Tente novamente.');
+    } finally {
+      setCarregando(false);
+    }
   }
+
+  useEffect(() => {
+    recarregar();
+  }, []);
 
   const recibosFiltrados = useMemo(() => {
     const buscaNormalizada = normalizar(busca);
@@ -83,8 +94,8 @@ export default function BatchGenerator() {
     setSelecionados(todosMarcados ? new Set() : new Set(idsVisiveis));
   }
 
-  function marcarGerado(id: string) {
-    atualizarStatusRecibo(id, 'gerado');
+  async function marcarGerado(id: string) {
+    await atualizarStatusRecibo(id, 'gerado');
   }
 
   async function handleGerarUm(recibo: ReciboPreparado) {
@@ -93,8 +104,8 @@ export default function BatchGenerator() {
     if (!elemento) return;
     try {
       await gerarPdfRecibo(elemento, nomeArquivoRecibo(recibo.entrega.escola.nome, recibo.entrega.dataEntrega));
-      marcarGerado(recibo.id);
-      recarregar();
+      await marcarGerado(recibo.id);
+      await recarregar();
     } catch {
       setErro('Não foi possível gerar o PDF deste recibo. Tente novamente.');
     }
@@ -115,7 +126,7 @@ export default function BatchGenerator() {
           const elemento = refsRecibos.current[recibo.id];
           if (!elemento) continue;
           await gerarPdfRecibo(elemento, nomeArquivoRecibo(recibo.entrega.escola.nome, recibo.entrega.dataEntrega));
-          marcarGerado(recibo.id);
+          await marcarGerado(recibo.id);
         }
       } else {
         setProgresso({ atual: 0, total: selecionadas.length });
@@ -123,9 +134,9 @@ export default function BatchGenerator() {
           .map((recibo) => refsRecibos.current[recibo.id])
           .filter((el): el is HTMLDivElement => !!el);
         await gerarPdfUnicoComVarios(elementos, 'recibos_entrega_lote.pdf');
-        selecionadas.forEach((recibo) => marcarGerado(recibo.id));
+        await Promise.all(selecionadas.map((recibo) => marcarGerado(recibo.id)));
       }
-      recarregar();
+      await recarregar();
     } catch (err) {
       console.error('Falha ao gerar recibos em lote:', err);
       setErro('Não foi possível gerar os recibos. Tente novamente.');
@@ -135,27 +146,37 @@ export default function BatchGenerator() {
     }
   }
 
-  function handleSalvarCorrecao(dados: DadosCorrecaoRecibo) {
+  async function handleSalvarCorrecao(dados: DadosCorrecaoRecibo) {
     if (!editando) return;
-    corrigirRecibo(editando.id, dados);
-    setEditando(null);
-    recarregar();
+    setErro(null);
+    try {
+      await corrigirRecibo(editando.id, dados);
+      setEditando(null);
+      await recarregar();
+    } catch {
+      setErro('Não foi possível salvar a correção. Tente novamente.');
+    }
   }
 
-  function handleExcluir(recibo: ReciboPreparado) {
+  async function handleExcluir(recibo: ReciboPreparado) {
     const confirmado = window.confirm(
       `Excluir o recibo de "${recibo.entrega.escola.nome}"? Essa ação não pode ser desfeita.`,
     );
     if (!confirmado) return;
 
-    removerRecibo(recibo.id);
-    setSelecionados((atual) => {
-      if (!atual.has(recibo.id)) return atual;
-      const novo = new Set(atual);
-      novo.delete(recibo.id);
-      return novo;
-    });
-    recarregar();
+    setErro(null);
+    try {
+      await removerRecibo(recibo.id);
+      setSelecionados((atual) => {
+        if (!atual.has(recibo.id)) return atual;
+        const novo = new Set(atual);
+        novo.delete(recibo.id);
+        return novo;
+      });
+      await recarregar();
+    } catch {
+      setErro('Não foi possível excluir o recibo. Tente novamente.');
+    }
   }
 
   if (visualizando) {
@@ -231,7 +252,9 @@ export default function BatchGenerator() {
           </span>
         </div>
 
-        {recibosFiltrados.length === 0 ? (
+        {carregando ? (
+          <p className="py-6 text-center text-sm text-gray-400">Carregando…</p>
+        ) : recibosFiltrados.length === 0 ? (
           <p className="py-6 text-center text-sm text-gray-400">Nenhum recibo encontrado.</p>
         ) : (
           <ul className="divide-y divide-gray-100">

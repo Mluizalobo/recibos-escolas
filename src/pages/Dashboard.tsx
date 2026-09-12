@@ -6,12 +6,15 @@ import { listarEscolasCadastradas } from '../services/escolasStore';
 
 export default function Dashboard() {
   const [totalEntregas, setTotalEntregas] = useState<number | null>(null);
-  const totalEscolasCadastradas = listarEscolasCadastradas().length;
+  const [totalEscolasCadastradas, setTotalEscolasCadastradas] = useState<number | null>(null);
 
   useEffect(() => {
     let ativo = true;
     obterResumoDashboard().then((dados) => {
       if (ativo) setTotalEntregas(dados.totalEntregas);
+    });
+    listarEscolasCadastradas().then((escolas) => {
+      if (ativo) setTotalEscolasCadastradas(escolas.length);
     });
     return () => {
       ativo = false;
@@ -48,7 +51,7 @@ export default function Dashboard() {
           </div>
           <div>
             <p className="text-xs text-gray-500">Escolas cadastradas</p>
-            <p className="text-2xl font-semibold text-gray-900">{totalEscolasCadastradas}</p>
+            <p className="text-2xl font-semibold text-gray-900">{totalEscolasCadastradas ?? '—'}</p>
           </div>
         </Link>
       </div>

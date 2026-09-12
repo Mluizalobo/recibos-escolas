@@ -1,6 +1,7 @@
 import type {
   Entrega,
   Escola,
+  EscolaCadastrada,
   ItemEntrega,
   JsonValue,
   PlanilhaGrade,
@@ -47,8 +48,8 @@ function adicionarObservacao(entrega: Entrega, mensagem: string): void {
  * horário. Nunca sobrescreve um dado que a planilha já informou; só
  * preenche o que está vazio. Retorna true quando achou correspondência.
  */
-function aplicarCadastro(escola: Escola): boolean {
-  const cadastro = encontrarEscolaCadastrada(escola.nome);
+function aplicarCadastro(escola: Escola, escolasCadastradas: EscolaCadastrada[]): boolean {
+  const cadastro = encontrarEscolaCadastrada(escola.nome, escolasCadastradas);
   if (!cadastro) return false;
 
   if (!escola.codigoEscola && cadastro.codigoEscola) escola.codigoEscola = cadastro.codigoEscola;
@@ -183,7 +184,7 @@ interface GrupoEmConstrucao {
  * Planilha "tabela": mapeia cabeçalhos, agrupa linhas da mesma entrega,
  * valida cada registro e classifica cada recibo com um status.
  */
-function normalizarTabela(linhas: PlanilhaLinha[]): ResultadoImportacao {
+function normalizarTabela(linhas: PlanilhaLinha[], escolasCadastradas: EscolaCadastrada[]): ResultadoImportacao {
   const avisos: string[] = [];
 
   if (linhas.length === 0) {
@@ -238,7 +239,7 @@ function normalizarTabela(linhas: PlanilhaLinha[]): ResultadoImportacao {
       horarioFuncionamento: comoTexto(linha.horarioFuncionamento) ?? null,
     };
 
-    const encontradaNoCadastro = aplicarCadastro(escola);
+    const encontradaNoCadastro = aplicarCadastro(escola, escolasCadastradas);
 
     let grupo = grupos.get(chave);
     if (!grupo) {
@@ -464,7 +465,11 @@ function interpretarLinhaEscola(textoOriginal: string): LinhaEscolaInterpretada 
   return { nome: nome || limparEspacos(textoOriginal), horarioFuncionamento, numeroLista };
 }
 
-function normalizarMatriz(grade: PlanilhaGrade, blocos: BlocoMatriz[]): ResultadoImportacao {
+function normalizarMatriz(
+  grade: PlanilhaGrade,
+  blocos: BlocoMatriz[],
+  escolasCadastradas: EscolaCadastrada[],
+): ResultadoImportacao {
   const avisos: string[] = [];
   const recibos: ReciboPreparado[] = [];
   const municipio = detectarMunicipio(grade);
@@ -507,7 +512,7 @@ function normalizarMatriz(grade: PlanilhaGrade, blocos: BlocoMatriz[]): Resultad
         endereco: { rua: '', numero: '', bairro: null, cidade: municipio ?? '', uf: null, cep: null },
         horarioFuncionamento,
       };
-      const encontradaNoCadastro = aplicarCadastro(escola);
+      const encontradaNoCadastro = aplicarCadastro(escola, escolasCadastradas);
 
       // Dado ausente nunca bloqueia a geração do recibo: cada situação vira
       // um aviso (para conferência) e uma observação impressa no próprio
@@ -602,7 +607,10 @@ function normalizarMatriz(grade: PlanilhaGrade, blocos: BlocoMatriz[]): Resultad
  * (uma linha por item). O usuário revisa o resultado — não digita nada
  * disso manualmente.
  */
-export function normalizeSpreadsheetData(grade: PlanilhaGrade): ResultadoImportacao {
+export function normalizeSpreadsheetData(
+  grade: PlanilhaGrade,
+  escolasCadastradas: EscolaCadastrada[],
+): ResultadoImportacao {
   const hashConteudo = gerarHash(JSON.stringify(grade));
 
   if (grade.length === 0) {
@@ -620,7 +628,9 @@ export function normalizeSpreadsheetData(grade: PlanilhaGrade): ResultadoImporta
 
   const blocos = detectarBlocosMatriz(grade);
   const resultado =
-    blocos.length > 0 ? normalizarMatriz(grade, blocos) : normalizarTabela(gradeParaLinhas(grade));
+    blocos.length > 0
+      ? normalizarMatriz(grade, blocos, escolasCadastradas)
+      : normalizarTabela(gradeParaLinhas(grade), escolasCadastradas);
 
   return { ...resultado, hashConteudo };
 }

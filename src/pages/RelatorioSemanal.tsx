@@ -1,8 +1,8 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { AlertTriangle, Building2, ClipboardList, Package } from 'lucide-react';
 import { listarRecibosPreparados } from '../services/recibosStore';
-import { STATUS_PREPARO_LABEL, type StatusPreparoRecibo } from '../types';
+import { STATUS_PREPARO_LABEL, type ReciboPreparado, type StatusPreparoRecibo } from '../types';
 
 const STATUS_ESTILO: Record<StatusPreparoRecibo, string> = {
   pendente: 'bg-amber-100 text-amber-700',
@@ -19,7 +19,11 @@ const STATUS_ESTILO: Record<StatusPreparoRecibo, string> = {
  * tela Histórico.
  */
 export default function RelatorioSemanal() {
-  const recibos = useMemo(() => listarRecibosPreparados(), []);
+  const [recibos, setRecibos] = useState<ReciboPreparado[]>([]);
+
+  useEffect(() => {
+    listarRecibosPreparados().then(setRecibos);
+  }, []);
 
   const escolasAtendidas = new Set(recibos.map((r) => r.entrega.escola.nome)).size;
   const recibosComPendencia = recibos.filter((r) => r.status === 'pendente' || r.status === 'com_erro').length;

@@ -1,38 +1,45 @@
+import { supabase } from './supabaseClient';
 import type { Endereco, EscolaCadastrada } from '../types';
 
-const CHAVE_LOCALSTORAGE = 'recibos-escolas:escolas-cadastradas';
-
-function lerCadastradas(): EscolaCadastrada[] {
-  try {
-    const bruto = localStorage.getItem(CHAVE_LOCALSTORAGE);
-    if (!bruto) return [];
-    const dados = JSON.parse(bruto);
-    return Array.isArray(dados) ? dados : [];
-  } catch {
-    return [];
-  }
+interface LinhaEscolaCadastrada {
+  id: string;
+  nome: string;
+  apelidos: string[];
+  codigo_escola: string | null;
+  cnpj: string | null;
+  endereco: Endereco;
+  horario_funcionamento: string | null;
 }
 
-let escolas: EscolaCadastrada[] = lerCadastradas();
-
-function salvar(): void {
-  try {
-    localStorage.setItem(CHAVE_LOCALSTORAGE, JSON.stringify(escolas));
-  } catch {
-    // localStorage indisponível — o cadastro só não sobrevive a um recarregamento da página.
-  }
+function linhaParaEscola(linha: LinhaEscolaCadastrada): EscolaCadastrada {
+  return {
+    id: linha.id,
+    nome: linha.nome,
+    apelidos: linha.apelidos ?? [],
+    codigoEscola: linha.codigo_escola ?? undefined,
+    cnpj: linha.cnpj ?? undefined,
+    endereco: linha.endereco,
+    horarioFuncionamento: linha.horario_funcionamento,
+  };
 }
 
 function gerarId(): string {
   return `escola-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
-export function listarEscolasCadastradas(): EscolaCadastrada[] {
-  return [...escolas].sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
+export async function listarEscolasCadastradas(): Promise<EscolaCadastrada[]> {
+  const { data, error } = await supabase
+    .from('escolas_cadastradas')
+    .select('*')
+    .order('nome', { ascending: true });
+  if (error) throw error;
+  return (data as LinhaEscolaCadastrada[]).map(linhaParaEscola);
 }
 
-export function obterEscolaCadastrada(id: string): EscolaCadastrada | undefined {
-  return escolas.find((e) => e.id === id);
+export async function obterEscolaCadastrada(id: string): Promise<EscolaCadastrada | undefined> {
+  const { data, error } = await supabase.from('escolas_cadastradas').select('*').eq('id', id).maybeSingle();
+  if (error) throw error;
+  return data ? linhaParaEscola(data as LinhaEscolaCadastrada) : undefined;
 }
 
 export interface DadosEscolaCadastrada {
@@ -44,21 +51,39 @@ export interface DadosEscolaCadastrada {
   horarioFuncionamento?: string | null;
 }
 
-export function criarEscolaCadastrada(dados: DadosEscolaCadastrada): EscolaCadastrada {
-  const nova: EscolaCadastrada = { ...dados, id: gerarId() };
-  escolas = [...escolas, nova];
-  salvar();
-  return nova;
+export async function criarEscolaCadastrada(dados: DadosEscolaCadastrada): Promise<EscolaCadastrada> {
+  const id = gerarId();
+  const { error } = await supabase.from('escolas_cadastradas').insert({
+    id,
+    nome: dados.nome,
+    apelidos: dados.apelidos,
+    codigo_escola: dados.codigoEscola || null,
+    cnpj: dados.cnpj || null,
+    endereco: dados.endereco,
+    horario_funcionamento: dados.horarioFuncionamento || null,
+  });
+  if (error) throw error;
+  return { ...dados, id };
 }
 
-export function atualizarEscolaCadastrada(id: string, dados: DadosEscolaCadastrada): void {
-  escolas = escolas.map((e) => (e.id === id ? { ...dados, id } : e));
-  salvar();
+export async function atualizarEscolaCadastrada(id: string, dados: DadosEscolaCadastrada): Promise<void> {
+  const { error } = await supabase
+    .from('escolas_cadastradas')
+    .update({
+      nome: dados.nome,
+      apelidos: dados.apelidos,
+      codigo_escola: dados.codigoEscola || null,
+      cnpj: dados.cnpj || null,
+      endereco: dados.endereco,
+      horario_funcionamento: dados.horarioFuncionamento || null,
+    })
+    .eq('id', id);
+  if (error) throw error;
 }
 
-export function removerEscolaCadastrada(id: string): void {
-  escolas = escolas.filter((e) => e.id !== id);
-  salvar();
+export async function removerEscolaCadastrada(id: string): Promise<void> {
+  const { error } = await supabase.from('escolas_cadastradas').delete().eq('id', id);
+  if (error) throw error;
 }
 
 // =====================================================================
@@ -67,6 +92,11 @@ export function removerEscolaCadastrada(id: string): void {
 // semana (abreviação, "SEDE"/"ANEXO", com ou sem "E.M."), então a
 // comparação ignora acento/caixa/pontuação e aceita quando um nome contém
 // o outro — não só igualdade exata.
+//
+// Recebe a lista de escolas já carregada (em vez de buscar no banco a cada
+// chamada) porque é usada uma vez por linha da planilha durante a
+// importação — buscar tudo uma única vez antes é bem mais rápido do que uma
+// consulta ao banco por escola.
 // =====================================================================
 
 function normalizarNome(valor: string): string {
@@ -80,12 +110,13 @@ function normalizarNome(valor: string): string {
 }
 
 /**
- * Procura, no cadastro, a escola que melhor corresponde a um nome livre vindo
- * da planilha. Prioriza igualdade exata (nome ou apelido); na ausência dela,
- * aceita a primeira escola cujo nome/apelido contenha o texto buscado ou seja
- * contido por ele (evitando strings muito curtas, que dariam falso positivo).
+ * Procura, entre as escolas cadastradas, a que melhor corresponde a um nome
+ * livre vindo da planilha. Prioriza igualdade exata (nome ou apelido); na
+ * ausência dela, aceita a primeira escola cujo nome/apelido contenha o texto
+ * buscado ou seja contido por ele (evitando strings muito curtas, que dariam
+ * falso positivo).
  */
-export function encontrarEscolaCadastrada(nomeLivre: string): EscolaCadastrada | null {
+export function encontrarEscolaCadastrada(nomeLivre: string, escolas: EscolaCadastrada[]): EscolaCadastrada | null {
   const alvo = normalizarNome(nomeLivre);
   if (!alvo) return null;
 

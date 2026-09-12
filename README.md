@@ -62,10 +62,17 @@ npm run build     # build de produção (checagem de tipos + bundle em dist/)
 npm run preview   # serve o build de produção localmente
 ```
 
-Não é necessário nenhum backend ou variável de ambiente para rodar o
-projeto. Os dados de demonstração ficam em memória; o que é importado via
-planilha, os recibos corrigidos/excluídos, a sessão de login e o histórico
-de importações persistem no `localStorage` do navegador.
+O projeto usa o Supabase como banco de dados (ver seção "Banco de dados").
+Para rodar localmente, crie um `.env.local` na raiz com:
+
+```
+VITE_SUPABASE_URL=https://SEU-PROJETO.supabase.co
+VITE_SUPABASE_ANON_KEY=sua-chave-anon-ou-publishable
+```
+
+A sessão de login continua em `localStorage` (ver seção "Login") — só os
+dados compartilhados (escolas cadastradas, recibos preparados, histórico de
+importações) ficam no banco.
 
 ## Login
 
@@ -78,6 +85,28 @@ existe um backend com autenticação de verdade. Trocar por login real é
 reescrever esse arquivo para chamar uma API de auth — `RotaProtegida` em
 `App.tsx` (que hoje só verifica `obterSessao()`) não precisa mudar.
 
+## Banco de dados (Supabase)
+
+Escolas cadastradas, recibos preparados e histórico de importações ficam no
+Postgres do Supabase (`src/services/supabaseClient.ts`), não mais no
+navegador — qualquer computador que acessar o sistema (com login) vê os
+mesmos dados. O schema fica em `supabase/schema.sql`; rode esse arquivo uma
+vez em **Supabase → SQL Editor** ao configurar um novo projeto.
+
+Segurança: as tabelas ficam com Row Level Security desligado — o login do
+sistema é próprio (`authService.ts`), não o Supabase Auth, então não há como
+o Postgres diferenciar "usuário autenticado" do jeito que RLS espera. Isso é
+consistente com o login já ser "só de front-end" (ver seção "Login"): quem
+tem o link do site e a chave `anon`/`publishable` (pública por design, vai
+no bundle do site) consegue ler/gravar essas tabelas. Aceitável para o
+tamanho do sistema hoje, já que não há dado sensível de terceiros — só
+recibos de entrega de merenda escolar.
+
+**Nunca** use a chave `service_role`/`secret` do Supabase (a que começa com
+`sb_secret_...` ou é o segundo JWT do projeto) no código do site — essa dá
+acesso total ao banco, sem restrição, e não deve aparecer em nada que vá
+para o navegador do usuário.
+
 ## Fluxo principal (importação semanal)
 
 ```
@@ -85,12 +114,14 @@ Planilha (.xlsx/.xls)
       │  excelService.ts        → lê o arquivo, calcula hash do conteúdo
       ▼
 normalizeService.ts             → mapeia colunas, agrupa linhas por escola/
-      │                           entrega, valida e classifica cada recibo
+      │                           entrega, casa com escolasStore.ts (cadastro
+      │                           próprio) para preencher dados ausentes,
+      │                           valida e classifica cada recibo
       ▼
-recibosStore.ts                 → guarda os recibos preparados (localStorage)
+recibosStore.ts                 → guarda os recibos preparados (Supabase)
       │
       ├─→ api.ts                → disponibiliza para a busca avulsa (Consultar Entrega)
-      └─→ historyService.ts     → registra a importação no histórico semanal
+      └─→ historyService.ts     → registra a importação no histórico semanal (Supabase)
       ▼
 BatchGenerator (tela "Recibos Preparados")
       │  busca / filtro por status / corrigir pendências / excluir
@@ -104,8 +135,7 @@ bloqueante, ex. endereço ausente), **Pronto** (sem pendências), **Com erro**
 **Impresso**. Pendências não bloqueantes podem ser corrigidas direto na tela
 (ícone de lápis); pendências de item ausente exigem corrigir a planilha de
 origem, já que a interface não deve inventar dados que não vieram dela.
-Recibos importados também podem ser excluídos da lista (ícone de lixeira) —
-os de demonstração não, para não sumirem "de verdade" a cada recarregamento.
+Recibos importados também podem ser excluídos da lista (ícone de lixeira).
 
 Reenviar uma planilha já processada (mesmo conteúdo) mostra um aviso antes
 de reprocessar, para evitar recibos duplicados. Depois de processar, dá para
@@ -122,10 +152,13 @@ src/
 │                     RelatorioSemanal, DadosEmpresa, Login
 ├── services/
 │   ├── api.ts              # camada de consulta avulsa (troque aqui por uma API real)
+│   ├── supabaseClient.ts   # cliente único do Supabase (ver seção "Banco de dados")
 │   ├── excelService.ts     # leitura do arquivo + hash do conteúdo
-│   ├── normalizeService.ts # normalizeSpreadsheetData(): mapeia, agrupa, valida
-│   ├── recibosStore.ts     # estado dos recibos preparados (+ correção/exclusão)
-│   ├── historyService.ts   # histórico de importações semanais
+│   ├── normalizeService.ts # normalizeSpreadsheetData(): mapeia, agrupa, casa com
+│   │                         escolasStore.ts e valida
+│   ├── escolasStore.ts     # cadastro próprio de escolas (Supabase) + casamento de nomes
+│   ├── recibosStore.ts     # recibos preparados (Supabase) — correção/exclusão
+│   ├── historyService.ts   # histórico de importações semanais (Supabase)
 │   ├── authService.ts      # login local (ver seção "Login")
 │   ├── pdfService.ts       # geração de PDF (individual e em lote)
 │   └── mockData.ts         # dados da empresa + demonstração para a Consulta
@@ -142,7 +175,8 @@ geração de PDF nunca ficam misturadas no mesmo arquivo.**
 
 Barra lateral fixa no desktop (`src/components/Sidebar.tsx`), com menu
 retrátil no mobile: Dashboard, Consultar Entrega, Importar Planilha, Recibos
-Preparados, Histórico, Relatório Semanal e Dados da Empresa.
+Preparados, Escolas Cadastradas, Histórico, Relatório Semanal e Dados da
+Empresa.
 
 ## Identidade visual
 
@@ -184,10 +218,8 @@ export async function consultarEntrega(tipo: SearchType, valor: string) {
 }
 ```
 
-Para a importação de planilha, o ponto de troca equivalente é
-`recibosStore.ts` (hoje guarda em `localStorage`; no futuro, os mesmos
-pontos onde ele é chamado por `Importacao.tsx` e `BatchGenerator.tsx`
-passariam a chamar uma API). Nenhum componente de página precisa mudar.
+Para a importação de planilha, escolas cadastradas e histórico, a fonte de
+dados já é real (Supabase) — ver seção "Banco de dados".
 
 ## Onde alterar o modelo do recibo
 
@@ -216,11 +248,13 @@ Novos tipos de identificador (ex: "turma", "regional") são adicionados em um
   disponível (`npm audit`). O risco é baixo aqui porque o arquivo processado
   é a planilha interna da própria empresa, não um upload de terceiros — mas
   vale reavaliar se o fluxo de importação for aberto a outras origens.
-- Histórico, recibos preparados, correções e sessão de login ficam no
-  `localStorage` do navegador — trocar de computador ou limpar dados do
-  site reinicia esse estado. Isso é esperado nesta fase (sem backend); a
-  arquitetura (`historyService.ts`, `recibosStore.ts`, `authService.ts`) já
-  está isolada para migrar para uma API/banco depois sem tocar nas telas.
+- A sessão de login ainda fica no `localStorage` do navegador (efeito
+  colateral de não ser autenticação real — ver seção "Login"); os demais
+  dados (escolas, recibos, histórico) já estão no Supabase e não dependem
+  mais do navegador.
+- As tabelas do Supabase estão com RLS desligado (ver seção "Banco de
+  dados") — aceitável hoje, mas vale revisar se o sistema crescer para
+  lidar com dados mais sensíveis ou múltiplas empresas.
 
 ## Perguntas que ainda faltam
 
