@@ -2,14 +2,16 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Building2, FileClock, Layers, Package, Search, UploadCloud } from 'lucide-react';
 import { EMPRESA, obterResumoDashboard } from '../services/api';
+import { listarEscolasCadastradas } from '../services/escolasStore';
 
 export default function Dashboard() {
-  const [resumo, setResumo] = useState<{ totalEntregas: number; totalEscolas: number } | null>(null);
+  const [totalEntregas, setTotalEntregas] = useState<number | null>(null);
+  const totalEscolasCadastradas = listarEscolasCadastradas().length;
 
   useEffect(() => {
     let ativo = true;
     obterResumoDashboard().then((dados) => {
-      if (ativo) setResumo(dados);
+      if (ativo) setTotalEntregas(dados.totalEntregas);
     });
     return () => {
       ativo = false;
@@ -34,18 +36,21 @@ export default function Dashboard() {
           </div>
           <div>
             <p className="text-xs text-gray-500">Entregas disponíveis</p>
-            <p className="text-2xl font-semibold text-gray-900">{resumo ? resumo.totalEntregas : '—'}</p>
+            <p className="text-2xl font-semibold text-gray-900">{totalEntregas ?? '—'}</p>
           </div>
         </div>
-        <div className="flex items-center gap-4 rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+        <Link
+          to="/escolas"
+          className="flex items-center gap-4 rounded-xl border border-gray-200 bg-white p-5 shadow-sm transition hover:border-brand/60 hover:shadow-md"
+        >
           <div className="rounded-lg bg-green-50 p-3">
             <Building2 className="h-6 w-6 text-green-700" aria-hidden="true" />
           </div>
           <div>
             <p className="text-xs text-gray-500">Escolas cadastradas</p>
-            <p className="text-2xl font-semibold text-gray-900">{resumo ? resumo.totalEscolas : '—'}</p>
+            <p className="text-2xl font-semibold text-gray-900">{totalEscolasCadastradas}</p>
           </div>
-        </div>
+        </Link>
       </div>
 
       <div>
