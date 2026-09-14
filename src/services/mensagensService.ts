@@ -43,8 +43,63 @@ export function obterMensagemDoDia(data: Date = new Date()): string {
   return MENSAGENS_DO_DIA[indice];
 }
 
+// =====================================================================
+// A saudação (Bom dia/Boa tarde/Boa noite) trava no horário da primeira
+// entrada do dia — sem isso, quem entra de manhã e continua usando o
+// sistema até depois do almoço veria a saudação "virar" pra "Boa tarde"
+// no meio do uso, o que não faz sentido pra um recado que é "do dia".
+// =====================================================================
+
+const CHAVE_PRIMEIRO_ACESSO = 'recibos-escolas:primeiro-acesso-do-dia';
+
+interface PrimeiroAcessoDoDia {
+  data: string; // AAAA-MM-DD, no fuso local (não usa toISOString: é UTC e erraria o dia perto da meia-noite)
+  hora: number; // hora (0-23) do primeiro acesso registrado nesse dia
+}
+
+function dataLocal(data: Date): string {
+  const ano = data.getFullYear();
+  const mes = String(data.getMonth() + 1).padStart(2, '0');
+  const dia = String(data.getDate()).padStart(2, '0');
+  return `${ano}-${mes}-${dia}`;
+}
+
+/**
+ * Registra a hora atual como "primeiro acesso de hoje", só se ainda não
+ * houver um registro para a data de hoje — chamada em todo carregamento do
+ * Dashboard, mas só tem efeito na primeira vez do dia. Chame antes de ler
+ * `obterSaudacao` para o dia já começar travado no horário certo.
+ */
+export function registrarAcessoDoDia(data: Date = new Date()): void {
+  try {
+    const chaveHoje = dataLocal(data);
+    const bruto = localStorage.getItem(CHAVE_PRIMEIRO_ACESSO);
+    if (bruto) {
+      const salvo = JSON.parse(bruto) as PrimeiroAcessoDoDia;
+      if (salvo.data === chaveHoje) return;
+    }
+    const registro: PrimeiroAcessoDoDia = { data: chaveHoje, hora: data.getHours() };
+    localStorage.setItem(CHAVE_PRIMEIRO_ACESSO, JSON.stringify(registro));
+  } catch {
+    // localStorage indisponível — a saudação vai só refletir a hora atual a cada acesso, sem travar.
+  }
+}
+
+function obterHoraDoPrimeiroAcesso(data: Date): number {
+  try {
+    const bruto = localStorage.getItem(CHAVE_PRIMEIRO_ACESSO);
+    if (bruto) {
+      const salvo = JSON.parse(bruto) as PrimeiroAcessoDoDia;
+      if (salvo.data === dataLocal(data)) return salvo.hora;
+    }
+  } catch {
+    // ignora e cai no horário atual
+  }
+  return data.getHours();
+}
+
 export function obterSaudacao(data: Date = new Date()): string {
-  const hora = data.getHours();
+  const hora = obterHoraDoPrimeiroAcesso(data);
   if (hora < 12) return 'Bom dia';
   if (hora < 18) return 'Boa tarde';
   return 'Boa noite';

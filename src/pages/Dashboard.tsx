@@ -4,12 +4,16 @@ import { Building2, FileClock, Layers, Package, Search, Sparkles, UploadCloud } 
 import { EMPRESA, obterResumoDashboard } from '../services/api';
 import { listarEscolasCadastradas } from '../services/escolasStore';
 import { obterSessao } from '../services/authService';
-import { obterMensagemDoDia, obterSaudacao } from '../services/mensagensService';
+import { obterMensagemDoDia, obterSaudacao, registrarAcessoDoDia } from '../services/mensagensService';
 
 export default function Dashboard() {
   const [totalEntregas, setTotalEntregas] = useState<number | null>(null);
   const [totalEscolasCadastradas, setTotalEscolasCadastradas] = useState<number | null>(null);
   const sessao = obterSessao();
+
+  useEffect(() => {
+    registrarAcessoDoDia();
+  }, []);
 
   useEffect(() => {
     let ativo = true;
