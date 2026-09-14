@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { CheckSquare, Eye, FileDown, Pencil, Search, Share2, Square, Trash2 } from 'lucide-react';
+import { Building2, CheckSquare, Eye, FileDown, Pencil, Search, Share2, Square, Trash2 } from 'lucide-react';
 import {
   atualizarStatusRecibo,
   corrigirRecibo,
@@ -527,13 +527,20 @@ export default function BatchGenerator() {
             <ul className="divide-y divide-gray-100 dark:divide-gray-800">{recibosFiltrados.map(linhaRecibo)}</ul>
           </div>
         ) : (
-          <div className="space-y-5">
+          <div className="space-y-4">
             {grupos.map((grupo) => (
-              <div key={grupo.chave}>
-                <div className="mb-1 flex items-center justify-between gap-2 pt-2">
-                  <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300">
-                    {grupo.titulo} <span className="font-normal text-gray-400 dark:text-gray-500">({grupo.recibos.length})</span>
-                  </h2>
+              <div
+                key={grupo.chave}
+                className="overflow-hidden rounded-lg border border-gray-200 dark:border-gray-800"
+              >
+                <div className="flex flex-wrap items-center justify-between gap-2 bg-gray-50 dark:bg-gray-800/60 px-4 py-2.5">
+                  <div className="flex items-center gap-2">
+                    <Building2 className="h-4 w-4 shrink-0 text-brand dark:text-green-400" aria-hidden="true" />
+                    <h2 className="text-sm font-semibold text-gray-800 dark:text-gray-200">{grupo.titulo}</h2>
+                    <span className="rounded-full border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-2 py-0.5 text-xs font-medium text-gray-500 dark:text-gray-400">
+                      {grupo.recibos.length} escola{grupo.recibos.length === 1 ? '' : 's'}
+                    </span>
+                  </div>
                   <button
                     type="button"
                     onClick={() => handleExcluirPlanilha(grupo)}
@@ -542,9 +549,7 @@ export default function BatchGenerator() {
                     {grupo.historico ? 'Excluir esta planilha' : 'Excluir estes recibos'}
                   </button>
                 </div>
-                <ul className="divide-y divide-gray-100 dark:divide-gray-800 border-t border-gray-100 dark:border-gray-800">
-                  {grupo.recibos.map(linhaRecibo)}
-                </ul>
+                <ul className="divide-y divide-gray-100 dark:divide-gray-800">{grupo.recibos.map(linhaRecibo)}</ul>
               </div>
             ))}
           </div>
