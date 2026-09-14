@@ -115,14 +115,33 @@ function normalizarNome(valor: string): string {
  * ausência dela, aceita a primeira escola cujo nome/apelido contenha o texto
  * buscado ou seja contido por ele (evitando strings muito curtas, que dariam
  * falso positivo).
+ *
+ * Quando a cidade da entrega é conhecida (`cidade`), só considera escolas
+ * cadastradas da mesma cidade (ou ainda sem cidade registrada). Isso evita
+ * que uma escola de nome genérico (ex: "EMEI CENTRO", comum em várias
+ * prefeituras) de uma planilha seja confundida com a escola de mesmo nome
+ * de OUTRA prefeitura já cadastrada — o que faria o sistema herdar o
+ * endereço errado e nunca cadastrar a escola nova de verdade.
  */
-export function encontrarEscolaCadastrada(nomeLivre: string, escolas: EscolaCadastrada[]): EscolaCadastrada | null {
+export function encontrarEscolaCadastrada(
+  nomeLivre: string,
+  escolas: EscolaCadastrada[],
+  cidade?: string | null,
+): EscolaCadastrada | null {
   const alvo = normalizarNome(nomeLivre);
   if (!alvo) return null;
 
+  const cidadeAlvo = cidade ? normalizarNome(cidade) : '';
+  const elegiveis = cidadeAlvo
+    ? escolas.filter((escola) => {
+        const cidadeCadastro = normalizarNome(escola.endereco?.cidade ?? '');
+        return !cidadeCadastro || cidadeCadastro === cidadeAlvo;
+      })
+    : escolas;
+
   let porContencao: EscolaCadastrada | null = null;
 
-  for (const escola of escolas) {
+  for (const escola of elegiveis) {
     const candidatos = [escola.nome, ...escola.apelidos].map(normalizarNome).filter(Boolean);
 
     if (candidatos.includes(alvo)) return escola;

@@ -49,7 +49,7 @@ function adicionarObservacao(entrega: Entrega, mensagem: string): void {
  * preenche o que está vazio. Retorna true quando achou correspondência.
  */
 function aplicarCadastro(escola: Escola, escolasCadastradas: EscolaCadastrada[]): boolean {
-  const cadastro = encontrarEscolaCadastrada(escola.nome, escolasCadastradas);
+  const cadastro = encontrarEscolaCadastrada(escola.nome, escolasCadastradas, escola.endereco.cidade);
   if (!cadastro) return false;
 
   if (!escola.codigoEscola && cadastro.codigoEscola) escola.codigoEscola = cadastro.codigoEscola;
