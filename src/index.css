@@ -32,6 +32,16 @@ body,
   height: 100%;
 }
 
+/*
+ * Desliga o "puxar para atualizar"/baloncinho de rolagem nativo do navegador
+ * no topo da página — sem isso, ele brigava com o gesto customizado de
+ * PullToRefresh.tsx (os dois tentando reagir ao mesmo arrasto ao mesmo
+ * tempo), o que parecia "bugado" no celular.
+ */
+html {
+  overscroll-behavior-y: contain;
+}
+
 body {
   margin: 0;
   background: #f6f7f9;

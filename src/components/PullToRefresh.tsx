@@ -17,6 +17,12 @@ export default function PullToRefresh({ children }: { children: ReactNode }) {
   const [atualizando, setAtualizando] = useState(false);
   const inicioYRef = useRef<number | null>(null);
   const arrastandoRef = useRef(false);
+  const distanciaRef = useRef(0);
+
+  function atualizarDistancia(valor: number): void {
+    distanciaRef.current = valor;
+    setDistancia(valor);
+  }
 
   useEffect(() => {
     function noTopo(): boolean {
@@ -35,11 +41,16 @@ export default function PullToRefresh({ children }: { children: ReactNode }) {
       const diferenca = e.touches[0].clientY - inicioYRef.current;
       if (diferenca <= 0 || !noTopo()) {
         arrastandoRef.current = false;
-        setDistancia(0);
+        atualizarDistancia(0);
         return;
       }
+      // Segura a rolagem/baloncinho nativo enquanto o gesto está em
+      // andamento — sem isso, o navegador tenta rolar/atualizar por conta
+      // própria ao mesmo tempo que o indicador customizado, e os dois
+      // brigam (efeito "travado"/tremido).
+      e.preventDefault();
       // resistência: o indicador acompanha o dedo cada vez mais devagar
-      setDistancia(Math.min(diferenca * 0.5, ALTURA_MAXIMA_PX));
+      atualizarDistancia(Math.min(diferenca * 0.5, ALTURA_MAXIMA_PX));
     }
 
     function handleTouchEnd(): void {
@@ -47,18 +58,19 @@ export default function PullToRefresh({ children }: { children: ReactNode }) {
       arrastandoRef.current = false;
       inicioYRef.current = null;
 
-      setDistancia((atual) => {
-        if (atual >= LIMIAR_PX) {
-          setAtualizando(true);
-          window.location.reload();
-          return LIMIAR_PX;
-        }
-        return 0;
-      });
+      if (distanciaRef.current >= LIMIAR_PX) {
+        setAtualizando(true);
+        window.location.reload();
+      } else {
+        atualizarDistancia(0);
+      }
     }
 
     window.addEventListener('touchstart', handleTouchStart, { passive: true });
-    window.addEventListener('touchmove', handleTouchMove, { passive: true });
+    // passive: false só pra poder chamar preventDefault() quando o gesto
+    // está realmente em andamento (ver handleTouchMove) — do contrário o
+    // navegador ignoraria a chamada.
+    window.addEventListener('touchmove', handleTouchMove, { passive: false });
     window.addEventListener('touchend', handleTouchEnd);
     return () => {
       window.removeEventListener('touchstart', handleTouchStart);
