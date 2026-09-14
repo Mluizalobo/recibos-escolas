@@ -1,12 +1,15 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Building2, FileClock, Layers, Package, Search, UploadCloud } from 'lucide-react';
+import { Building2, FileClock, Layers, Package, Search, Sparkles, UploadCloud } from 'lucide-react';
 import { EMPRESA, obterResumoDashboard } from '../services/api';
 import { listarEscolasCadastradas } from '../services/escolasStore';
+import { obterSessao } from '../services/authService';
+import { obterMensagemDoDia, obterSaudacao } from '../services/mensagensService';
 
 export default function Dashboard() {
   const [totalEntregas, setTotalEntregas] = useState<number | null>(null);
   const [totalEscolasCadastradas, setTotalEscolasCadastradas] = useState<number | null>(null);
+  const sessao = obterSessao();
 
   useEffect(() => {
     let ativo = true;
@@ -33,6 +36,17 @@ export default function Dashboard() {
         <p className="mt-1 max-w-2xl text-sm text-gray-500 dark:text-gray-400">
           Substitui o processo manual de copiar dados da planilha para o Word: consulte a escola, confira os
           dados e gere o recibo em PDF pronto para impressão.
+        </p>
+      </div>
+
+      <div className="flex items-start gap-3 rounded-xl border border-brand/20 dark:border-green-800/40 bg-brand-light dark:bg-brand/10 p-4">
+        <Sparkles className="mt-0.5 h-5 w-5 shrink-0 text-brand dark:text-green-400" aria-hidden="true" />
+        <p className="text-sm text-brand-dark dark:text-green-400">
+          <span className="font-semibold">
+            {obterSaudacao()}
+            {sessao ? `, ${sessao.nome}` : ''}!
+          </span>{' '}
+          <span className="text-gray-700 dark:text-gray-300">{obterMensagemDoDia()}</span>
         </p>
       </div>
 
