@@ -11,6 +11,7 @@ import EscolasCadastradas from './pages/EscolasCadastradas';
 import Login from './pages/Login';
 import BatchGenerator from './components/BatchGenerator';
 import Sidebar, { type LinkSidebar } from './components/Sidebar';
+import PullToRefresh from './components/PullToRefresh';
 import { obterSessao } from './services/authService';
 
 const LINKS: LinkSidebar[] = [
@@ -35,7 +36,9 @@ function RotaProtegida({ children }: { children: ReactNode }) {
   return (
     <div className="flex min-h-screen flex-col bg-gray-50 dark:bg-gray-950 sm:flex-row">
       <Sidebar links={LINKS} sessao={sessao} />
-      <main className="min-w-0 flex-1 px-4 py-6 sm:px-8">{children}</main>
+      <main className="min-w-0 flex-1 px-4 py-6 sm:px-8">
+        <PullToRefresh>{children}</PullToRefresh>
+      </main>
     </div>
   );
 }
